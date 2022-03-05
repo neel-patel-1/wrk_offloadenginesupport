@@ -13,8 +13,10 @@ static struct config {
     bool     delay;
     bool     dynamic;
     bool     latency;
+    bool     use_offload;
     char    *host;
     char    *script;
+    char    *engine;
     SSL_CTX *ctx;
 } cfg;
 
@@ -73,7 +75,14 @@ int main(int argc, char **argv) {
     char *service = port ? port : schema;
 
     if (!strncmp("https", schema, 5)) {
-        if ((cfg.ctx = ssl_init()) == NULL) {
+	if(cfg.use_offload){
+		if ((cfg.ctx = ssl_offload_init(cfg.engine)) == NULL) {
+		    fprintf(stderr, "unable to initialize SSL using Offload Engine\n");
+		    ERR_print_errors_fp(stderr);
+		    exit(1);
+		}
+	}
+	else if ((cfg.ctx = ssl_init()) == NULL) {
             fprintf(stderr, "unable to initialize SSL\n");
             ERR_print_errors_fp(stderr);
             exit(1);
@@ -476,6 +485,7 @@ static struct option longopts[] = {
     { "timeout",     required_argument, NULL, 'T' },
     { "help",        no_argument,       NULL, 'h' },
     { "version",     no_argument,       NULL, 'v' },
+    { "engine",      required_argument, NULL, 'e' },
     { NULL,          0,                 NULL,  0  }
 };
 
@@ -488,8 +498,9 @@ static int parse_args(struct config *cfg, char **url, struct http_parser_url *pa
     cfg->connections = 10;
     cfg->duration    = 10;
     cfg->timeout     = SOCKET_TIMEOUT_MS;
+    cfg->use_offload = false;
 
-    while ((c = getopt_long(argc, argv, "t:c:d:s:H:T:Lrv?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "t:c:d:s:H:T:e:Lrv?", longopts, NULL)) != -1) {
         switch (c) {
             case 't':
                 if (scan_metric(optarg, &cfg->threads)) return -1;
@@ -517,6 +528,10 @@ static int parse_args(struct config *cfg, char **url, struct http_parser_url *pa
                 printf("wrk %s [%s] ", VERSION, aeGetApiName());
                 printf("Copyright (C) 2012 Will Glozer\n");
                 break;
+	    case 'e':
+		cfg->use_offload = true;
+		cfg->engine = optarg;
+		break;
             case 'h':
             case '?':
             case ':':
