@@ -58,7 +58,7 @@ do
 	elif [[ "$magn" = "B" ]]; then
 		read_persec_GB=$(python3 -c "print(float(${read_persec_num})/1000000000)")
 	else
-		tot_read_GB=$(python3 -c "print(float(${read_persec_num}))")
+		read_persec_GB=$(python3 -c "print(float(${read_persec_num}))")
 	fi
 	echo "persec read: $read_persec_GB"
 	
