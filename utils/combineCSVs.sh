@@ -28,14 +28,16 @@ do
 		size=$(python3 -c "print(float(${size}))")
 	fi
 
-	echo "$size :"
+	echo  "writing ${size}KB to ${csv_resdir}/${dur}s_chart.csv"
+	
+	sizeGBPS=" "
 	for j in "${cons[@]}"
 	do
-		echo "${resdir}/${j}_${dur}s.csv"
+		#echo "${resdir}/${j}_${dur}s.csv"
 		line=$(grep "^$size," results/${j}_${dur}s.csv)
 		GBPS=$(echo "$line" | awk -F',' '{print $2}')
 		GB=$(echo "$line" | awk -F',' '{print $3}')
-
-		echo "$GBPS $GB"
+		sizeGBPS="$sizeGBPS,${GBPS}"
 	done
+	echo  "${size},$(echo "$sizeGBPS" | sed 's/^ ,//')" >> ${csv_resdir}/${dur}s_chart.csv
 done
