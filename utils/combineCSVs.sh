@@ -13,31 +13,33 @@ export csv_resdir=$WRK_ROOT/csv_results
 [ ! -d "$csv_resdir" ] && mkdir $csv_resdir
 
 echo -n "" > ${csv_resdir}/${dur}s_chart.csv
-echo ",http,https,offload,http+sendfile" >> ${csv_resdir}/${dur}s_chart.csv
-for i in "${sizes[@]}"
+echo ",4,16,64,256" >> ${csv_resdir}/${dur}s_chart.csv
+#echo ",4,16,64,256" 
+for i in "${cons[@]}"
 do
-	magn=$(echo "$i" | grep -Eo '[0-9]*[A-Z]' | tail -n 1 | grep -Eo '[A-Z]*')
-	size=$(echo "$i" | grep -Eo '[0-9]*[A-Z]' | tail -n 1 | grep -Eo '[0-9]*')
-	if [[ "$magn" = "M" ]]; then
-		size=$(python3 -c "print(float(${size})*1000)")
-	elif [[ "$magn" = "G" ]]; then
-		size=$(python3 -c "print(float(${size})*1000000)")
-	elif [[ "$magn" = "B" ]]; then
-		size=$(python3 -c "print(float(${size})/1000)")
-	else
-		size=$(python3 -c "print(float(${size}))")
-	fi
-
-	echo  "writing ${size}KB to ${csv_resdir}/${dur}s_chart.csv"
-	
-	sizeGBPS=" "
-	for j in "${cons[@]}"
+	conGBPS=" "
+	for j in "${sizes[@]}"
 	do
 		#echo "${resdir}/${j}_${dur}s.csv"
-		line=$(grep "^$size," results/${j}_${dur}s.csv)
-		GBPS=$(echo "$line" | awk -F',' '{print $2}')
-		GB=$(echo "$line" | awk -F',' '{print $3}')
-		sizeGBPS="$sizeGBPS,${GBPS}"
+		magn=$(echo "$j" | grep -Eo '[0-9]*[A-Z]' | tail -n 1 | grep -Eo '[A-Z]*')
+		size=$(echo "$j" | grep -Eo '[0-9]*[A-Z]' | tail -n 1 | grep -Eo '[0-9]*')
+		if [[ "$magn" = "M" ]]; then
+			size=$(python3 -c "print(float(${size})*1000)")
+		elif [[ "$magn" = "G" ]]; then
+			size=$(python3 -c "print(float(${size})*1000000)")
+		elif [[ "$magn" = "B" ]]; then
+			size=$(python3 -c "print(float(${size})/1000)")
+		else
+			size=$(python3 -c "print(float(${size}))")
+		fi
+
+		echo  "writing $i connection ${size}KB to ${csv_resdir}/${dur}s_chart.csv"
+		line=$(grep "^$size," results/${i}_${dur}s.csv)
+		#echo "$line"
+		GBPS=$(echo "$line" | awk -F',' '{print $3}')
+		GB=$(echo "$line" | awk -F',' '{print $2}')
+		conGBPS="$conGBPS,${GBPS}"
 	done
-	echo  "${size},$(echo "$sizeGBPS" | sed 's/^ ,//')" >> ${csv_resdir}/${dur}s_chart.csv
+	#echo  "${i},$(echo "$conGBPS" | sed 's/^ ,//')" 
+	echo  "${i},$(echo "$conGBPS" | sed 's/^ ,//')" >> ${csv_resdir}/${dur}s_chart.csv
 done
