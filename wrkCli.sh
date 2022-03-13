@@ -17,6 +17,8 @@ do
 		./wrk -t16 -c1024 -d${2}s https://192.168.1.2:443/file_${i}.txt > $wrk_output/tls_${2}_${i}.wrk
 	elif [ "${1}" = "tcpsendfile" ]; then
 		./wrk -t16 -c1024 -d${2}s http://192.168.1.2:80/file_${i}.txt > $wrk_output/tcpsendfile_${2}_${i}.wrk
+	elif [ "${1}" = "tcp" ]; then
+		./wrk -t16 -c1024 -d${2}s http://192.168.1.2:80/file_${i}.txt > $wrk_output/tcpsendfile_${2}_${i}.wrk
 	else
 		./wrk -t16 -c1024 -d${2}s http://192.168.1.2:80/file_${i}.txt > $wrk_output/tcp_${2}_${i}.wrk
 	fi
