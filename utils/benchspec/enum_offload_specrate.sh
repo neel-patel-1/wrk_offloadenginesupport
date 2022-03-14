@@ -7,10 +7,9 @@ export spec_output=$WRK_ROOT/spec_res
 declare -a server_cores=("10" )
 #declare -a fsizes=("4K" "16K" "64K" "128K" "256K" )
 declare -a fsizes=( "256K" )
-#declare -a methods=( "offload" "http" "https" "httpsendfile" )
-declare -a methods=( "https" "httpsendfile" )
+declare -a methods=( "offload" "http" "https" "httpsendfile" )
 
-declare -a copies=( "1" )
+declare -a copies=( "1" "2" "3" )
 
 #16 client threads
 for l in "${copies[@]}"
