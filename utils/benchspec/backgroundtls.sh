@@ -4,18 +4,20 @@ remote_spec=/usr/local/cpu2017/bin/runcpu
 spec_params="--config=testConfig.cfg --copies=1 -o txt --fakereport 525.x264_r"
 run=${1} #type of test
 clients=${2} #number of client threads
+fSize=${3}
 
 #start client threads
 if [ "$run" = "https" ]; then
-	echo "https benchmark -- $clients threads"
+	echo "https benchmark -- $clients threads -- $server threads -- file size: $fsize"
 elif [ "$run" = "http" ]; then
-	echo "http benchmark -- $clients threads"
+	echo "http benchmark -- $clients threads -- $server threads -- file size: $fsize"
 elif [ "$run" = "https offload" ]; then
-	echo "https offload -- $clients threads"
+	echo "https offload -- $clients threads -- $server threads -- file size: $fsize"
 elif [ "$run" = "httpsendfile" ]; then
-	echo "http with sendfile benchmark -- $clients threads"
+	echo "http with sendfile benchmark -- $clients threads -- $server threads -- file size: $fsize"
+	./utils/bandwidth_measurement/enum_httpsendfile_throughput.sh
 else
-	echo "benchmark -- no clients"
+	echo "benchmark -- no connections "
 fi
 
 
