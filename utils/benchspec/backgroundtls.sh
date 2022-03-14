@@ -32,8 +32,13 @@ else
 fi
 
 
+#choose taskset cores
 #start 525 test
-res_path=$(ssh ${remote_host} ${remote_spec} ${spec_params} | grep -e 'format: Text' | awk '{print $4}')
+task_set="taskset --cpu-list ${occupied}-$(($occupied + $num_spec_cores - 1)) $(($occupied + $num_cores))-$(($num_cores + occupied + $num_spec_cores - 1))"
+
+echo "$task_set"
+
+res_path=$(ssh ${remote_host} ${task_set} ${remote_spec} ${spec_params} | grep -e 'format: Text' | awk '{print $4}')
 
 #get rate from 525 test
 >&2 echo "reading results from : $res_path"
