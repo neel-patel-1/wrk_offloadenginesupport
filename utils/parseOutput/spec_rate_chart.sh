@@ -2,9 +2,11 @@
 export WRK_ROOT=$(pwd)
 export spec_output=$WRK_ROOT/spec_res
 
-file=csv_results/3rate_spec_test.csv
+copies=${1}
+
+file=csv_results/${copies}copies_spec_rate.csv
 echo ",runtime,rate,bandwidth" > $file
-for i in $spec_output/*
+for i in $spec_output/*${copies}copies.spec
 do
 	row=$(echo "$i" | sed -e 's/.*\/\([a-z][a-z]*\)_.*/\1,/')
 	row+=$(head -n 1 $i | sed 's/ /,/' )

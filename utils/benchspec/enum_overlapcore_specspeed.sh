@@ -10,10 +10,10 @@ declare -a fsizes=( "256K" )
 declare -a methods=( "offload" "http" "https" "httpsendfile" )
 #declare -a methods=( "httpsendfile" )
 
-declare -a copies=( "1" "5" )
+declare -a threads=( "1" "5" )
 
 #16 client threads
-for l in "${copies[@]}"
+for l in "${threads[@]}"
 do
 	for k in "${methods[@]}"
 	do
@@ -21,10 +21,11 @@ do
 		do
 			for i in "${server_cores[@]}"
 			do
-				outfile=$spec_output/${k}_rate_${i}core_${j}_${l}copies.spec
+				outfile=$spec_output/${k}_rate_${i}core_${j}_${l}threads.spec
 				echo -n "" > $outfile
-				./utils/benchspec/backgroundtls.sh $k 16 $i $j $l | grep -e '[0-9][0-9]*' > $outfile
+				./utils/benchspec/occupiedbackground_speed.sh $k 16 $i $j $l | grep -e '[0-9][0-9]*' > $outfile
 			done
 		done
 	done
 done
+

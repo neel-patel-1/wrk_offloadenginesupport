@@ -6,16 +6,15 @@ run=${1} #type of test
 clients=${2} #number of client threads
 servers=${3}
 fSize=${4}
-copies=${5}
+threads=${5}
 pid=""
-spec_params="--config=testConfig.cfg --copies=$copies -o txt 525.x264_r"
+spec_params="--config=testConfig.cfg --threads=$threads --fakereport -o txt 505.mcf"
 
-#calc taskset for separate spec benchmark pcores
+#calc taskset for same spec benchmark pcores
 #nginx always gets lower cores
-spec_start_core=$((servers + 1))
 num_spec_cores=9
 num_cores=20
-task_set="taskset --cpu-list ${spec_start_core}-$(($spec_start_core + $num_spec_cores - 1)),$(($spec_start_core + $num_cores))-$(($num_cores + spec_start_core + $num_spec_cores - 1))"
+task_set="taskset --cpu-list 1-${servers},$((1 + $num_cores))-$(($servers + $num_cores))"
 >&2 echo "$task_set"
 
 #start client threads
@@ -60,3 +59,5 @@ ps aux | grep './wrk' | awk '{print $2}' | xargs sudo kill -s 2
 #clean up results directory
 scp ${remote_host}:${res_path} remote_res
 ssh ${remote_host} "rm -rf ${remote_cpu}/result/*"
+
+
