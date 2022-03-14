@@ -8,18 +8,23 @@ declare -a server_cores=("10" )
 #declare -a fsizes=("4K" "16K" "64K" "128K" "256K" )
 declare -a fsizes=( "256K" )
 #declare -a methods=( "offload" "http" "https" "httpsendfile" )
-declare -a methods=( "offload" )
+declare -a methods=( "https" "httpsendfile" )
+
+declare -a copies=( "1" )
 
 #16 client threads
-for k in "${methods[@]}"
+for l in "${copies[@]}"
 do
-	for j in "${fsizes[@]}"
+	for k in "${methods[@]}"
 	do
-		outfile=$spec_output/${k}_rate_${i}core_${j}.spec
-		echo -n "" > $outfile
-		for i in "${server_cores[@]}"
+		for j in "${fsizes[@]}"
 		do
-			./utils/benchspec/backgroundtls.sh offload 16 $i $j | grep -e '[0-9][0-9]*' > $outfile
+			outfile=$spec_output/${k}_rate_${i}core_${j}.spec
+			echo -n "" > $outfile
+			for i in "${server_cores[@]}"
+			do
+				./utils/benchspec/backgroundtls.sh $k 16 $i $j $l | grep -e '[0-9][0-9]*' > $outfile
+			done
 		done
 	done
 done
