@@ -8,7 +8,7 @@ servers=${3}
 fSize=${4}
 copies=${5}
 pid=""
-spec_params="--config=testConfig.cfg --copies=$copies -o txt 525.x264_r"
+spec_params="--config=testConfig.cfg --copies=$copies  -o txt 525.x264_r"
 
 #calc taskset for same spec benchmark pcores
 #nginx always gets lower cores
@@ -33,6 +33,10 @@ elif [ "$run" = "offload" ]; then
 elif [ "$run" = "httpsendfile" ]; then
 	>&2 echo "http with sendfile benchmark -- $clients threads -- $servers threads -- file size: $fSize"
 	./utils/bandwidth_measurement/maximum_httpsendfile_throughput.sh 8h $clients $fSize $servers &
+	pid=$!
+elif [ "$run" = "qtls" ]; then
+	>&2 echo "qtls with sendfile benchmark -- $clients threads -- $servers threads -- file size: $fSize"
+	./utils/bandwidth_measurement/maximum_qtls_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 else
 	>&2 echo "benchmark -- no connections "

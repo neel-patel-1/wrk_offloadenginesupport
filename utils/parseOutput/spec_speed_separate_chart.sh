@@ -1,14 +1,14 @@
 #!/bin/bash
-export WRK_ROOT=$(pwd)
+export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 export spec_output=$WRK_ROOT/spec_res
 
 copies=${1}
 
-file=csv_results/mcf_${copies}copies_separate.csv
+file=$WRK_ROOT/csv_results/${copies}copies_505_mcf_diffcores.csv
 echo ",runtime,rate,bandwidth" > $file
-for i in $spec_output/*${copies}copies_separate.spec
+for i in $spec_output/505_mcf_*_${copies}copies_separate.spec
 do
-	row=$(echo "$i" | sed -e 's/.*\/\([a-z][a-z]*\)_.*/\1,/')
+	row=$(echo "$i" | sed -e 's/.*\/\([a-z0-9][a-z0-9]*\)_\([a-z0-9][a-z0-9]*\)_\([a-z0-9][a-z0-9]*\).*/\3,/')
 	row+=$(head -n 1 $i | sed 's/ /,/' )
 	row+=","
 	row+=$(tail -n 1 $i | sed 's/[a-zA-Z][a-zA-Z/ ]*//' )
