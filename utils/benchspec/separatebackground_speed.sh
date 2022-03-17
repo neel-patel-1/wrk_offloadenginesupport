@@ -10,11 +10,12 @@ copies=${5}
 pid=""
 spec_params="--config=testConfig.cfg --copies=$copies -o txt 505.mcf"
 
-#calc taskset for same spec benchmark pcores
+#calc taskset for separate spec benchmark pcores
 #nginx always gets lower cores
+spec_start_core=$((servers + 1))
 num_spec_cores=9
 num_cores=20
-task_set="taskset --cpu-list 1-${servers},$((1 + $num_cores))-$(($servers + $num_cores))"
+task_set="taskset --cpu-list ${spec_start_core}-$(($spec_start_core + $num_spec_cores - 1)),$(($spec_start_core + $num_cores))-$(($num_cores + spec_start_core + $num_spec_cores - 1))"
 >&2 echo "$task_set"
 
 #start client threads

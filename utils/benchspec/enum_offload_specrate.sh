@@ -21,7 +21,7 @@ do
 		do
 			for i in "${server_cores[@]}"
 			do
-				outfile=$spec_output/${k}_rate_${i}core_${j}_${l}copies.spec
+				outfile=$spec_output/${k}_rate_${i}core_${j}_${l}copies_different.spec
 				echo -n "" > $outfile
 				./utils/benchspec/backgroundtls.sh $k 16 $i $j $l | grep -e '[0-9][0-9]*' > $outfile
 			done
