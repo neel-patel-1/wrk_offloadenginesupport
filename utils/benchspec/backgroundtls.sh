@@ -1,4 +1,7 @@
 #!/bin/bash
+export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
+source $WRK_ROOT/vars/environment.src
+
 remote_host=n869p538@pollux.ittc.ku.edu
 remote_spec=/usr/local/cpu2017/bin/runcpu
 remote_cpu=/usr/local/cpu2017
@@ -37,7 +40,7 @@ elif [ "$run" = "httpsendfile" ]; then
 	pid=$!
 elif [ "$run" = "qtls" ]; then
 	>&2 echo "qtls with sendfile benchmark -- $clients threads -- $servers threads -- file size: $fSize"
-	./utils/bandwidth_measurement/maximum_qtls_throughput.sh 8h $clients $fSize $servers &
+	${QTLS_TEST_DIR}/maximum_qtls_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 else
 	>&2 echo "benchmark -- no connections "

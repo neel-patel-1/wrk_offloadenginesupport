@@ -1,0 +1,7 @@
+export ROOT_DIR=/home/n869p538/wrk_offloadenginesupport
+export UTIL_DIR=$ROOT_DIR/utils
+export OPENSSL_DIR=$ROOT_DIR/openssl
+export QTLS_TEST_DIR=$UTIL_DIR/qtls_tests
+export HTTP_TEST_DIR=$UTIL_DIR/http_tests
+export SPEC_DIR=$UTIL_DIR/benchspec
+export PARSE_DIR=$UTIL_DIR/parseOutput

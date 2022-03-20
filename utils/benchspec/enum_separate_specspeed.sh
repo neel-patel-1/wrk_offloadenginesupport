@@ -1,5 +1,5 @@
 #!/bin/bash
-export WRK_ROOT=$(pwd)
+export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 export spec_output=$WRK_ROOT/spec_res
 [ ! -d "$spec_output" ] && mkdir $spec_output
 
@@ -7,8 +7,8 @@ export spec_output=$WRK_ROOT/spec_res
 declare -a server_cores=("10" )
 #declare -a fsizes=("4K" "16K" "64K" "128K" "256K" )
 declare -a fsizes=( "256K" )
-#declare -a methods=( "offload" "http" "https" "httpsendfile" )
-declare -a methods=( "qtls" )
+#declare -a methods=( "offload" "http" "https" "httpsendfile" "qtls" )
+declare -a methods=( "offload" "http" "https" "httpsendfile" )
 
 declare -a copies=( "1" "5" )
 

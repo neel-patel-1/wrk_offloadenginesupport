@@ -1,5 +1,5 @@
 #!/bin/bash
-export WRK_ROOT=$(pwd)
+export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 export spec_output=$WRK_ROOT/spec_res
 [ ! -d "$spec_output" ] && mkdir $spec_output
 
