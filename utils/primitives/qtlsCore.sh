@@ -1,4 +1,5 @@
 #!/bin/bash
+export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 
 
 core=${1}
