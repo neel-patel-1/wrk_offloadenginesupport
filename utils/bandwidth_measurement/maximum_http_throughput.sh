@@ -9,8 +9,8 @@ wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 outfile=${wrk_output}/http_${1}_${fSize}.per_core_throughput
 
 #stop remote nginx
-ssh n869p538@pollux.ittc.ku.edu /home/n869p538/nginx-1.20.1/nginx_qat.sh -s stop ${numServerCores}
-ssh n869p538@pollux.ittc.ku.edu /home/n869p538/nginx-1.20.1/nginx_qat.sh tlso ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  -s stop ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  tlso ${numServerCores}
 
 echo -n "" > $wrk_output/http_${duration}_${fSize}.per_core_throughput
 for j in `seq 1 ${numCores}`; do

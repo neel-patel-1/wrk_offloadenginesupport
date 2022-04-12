@@ -3,12 +3,14 @@ duration=${1}
 numCores=${2}
 fSize=${3}
 numServerCores=${4}
+export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
+source $WRK_ROOT/vars/environment.src
 wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 outfile=${wrk_output}/tls_${1}_${fSize}.per_core_throughput
 
 #stop remote nginx
-ssh n869p538@pollux.ittc.ku.edu /home/n869p538/nginx-1.20.1/nginx_qat.sh -s stop ${numServerCores}
-ssh n869p538@pollux.ittc.ku.edu /home/n869p538/nginx-1.20.1/nginx_qat.sh tls ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  -s stop ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  tls ${numServerCores}
 
 echo -n "" > $wrk_output/tls_${duration}_${fSize}.per_core_throughput
 for j in `seq 1 ${numCores}`; do

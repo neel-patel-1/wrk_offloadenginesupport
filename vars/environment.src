@@ -5,3 +5,12 @@ export QTLS_TEST_DIR=$UTIL_DIR/qtls_tests
 export HTTP_TEST_DIR=$UTIL_DIR/http_tests
 export SPEC_DIR=$UTIL_DIR/benchspec
 export PARSE_DIR=$UTIL_DIR/parseOutput
+export remote_nginx_start=/home/n869p538/patched_async_mode_nginx/nginx_qat.sh
+export remote_user=n869p538@pollux.ittc.ku.edu
+
+
+export ASYNC_NGINX=$ROOT_DIR/async_nginx_build
+export QTLS_OFFLOAD_ENGINE=ASYNC_NGINX/Builds/openssl/lib/engines-1.1
+
+export AXDIMM_OFFLOAD_OPENSSL_ENGINE=$ASYNC_NGINX/default_nginx/openssl/lib/engines-1.1
+export CRYPTO_MB=$ASYNC_NGINX/Builds/crypto_mb/2020u3/lib

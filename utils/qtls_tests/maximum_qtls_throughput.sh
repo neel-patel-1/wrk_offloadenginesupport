@@ -10,8 +10,8 @@ wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 outfile=${wrk_output}/qtls_${1}_${fSize}.per_core_throughput
 
 #stop remote nginx
-ssh n869p538@pollux.ittc.ku.edu /home/n869p538/nginx-1.20.1/nginx_qat.sh -s stop ${numServerCores}
-ssh n869p538@pollux.ittc.ku.edu /home/n869p538/nginx-1.20.1/nginx_qat.sh qtls ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  -s stop ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  qtls ${numServerCores}
 
 echo -n "" > $outfile
 for j in `seq 1 ${numCores}`; do
