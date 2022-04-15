@@ -23,23 +23,23 @@ task_set="taskset --cpu-list 1-${servers},$((1 + $num_cores))-$(($servers + $num
 #start client threads
 if [ "$run" = "https" ]; then
 	>&2 echo "https benchmark -- $clients threads -- $servers threads -- file size: $fSize"
-	./utils/bandwidth_measurement/maximum_tls_throughput.sh 8h $clients $fSize $servers &
+	${WRK_ROOT}/utils/bandwidth_measurement/maximum_tls_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 elif [ "$run" = "http" ]; then
 	>&2 echo "http benchmark -- $clients threads -- $servers threads -- file size: $fSize"
-	./utils/bandwidth_measurement/maximum_http_throughput.sh 8h $clients $fSize $servers &
+	${WRK_ROOT}/utils/bandwidth_measurement/maximum_http_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 elif [ "$run" = "offload" ]; then
 	>&2 echo "https offload -- $clients threads -- $servers threads -- file size: $fSize"
-	./utils/bandwidth_measurement/maximum_offload_throughput.sh 8h $clients $fSize $servers &
+	${WRK_ROOT}/utils/bandwidth_measurement/maximum_offload_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 elif [ "$run" = "httpsendfile" ]; then
 	>&2 echo "http with sendfile benchmark -- $clients threads -- $servers threads -- file size: $fSize"
-	./utils/bandwidth_measurement/maximum_httpsendfile_throughput.sh 8h $clients $fSize $servers &
+	${WRK_ROOT}/utils/bandwidth_measurement/maximum_httpsendfile_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 elif [ "$run" = "qtls" ]; then
 	>&2 echo "qtls with sendfile benchmark -- $clients threads -- $servers threads -- file size: $fSize"
-	${QTLS_TEST_DIR}/maximum_qtls_throughput.sh 8h $clients $fSize $servers &
+	${WRK_ROOT}/utils/bandwidth_measurement/maximum_qtls_throughput.sh 8h $clients $fSize $servers &
 	pid=$!
 else
 	>&2 echo "benchmark -- no connections "
