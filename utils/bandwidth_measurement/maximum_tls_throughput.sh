@@ -27,6 +27,6 @@ done
 
 #total bandwidth report
 wait
-./utils/parseOutput/sum_core_throughput.sh $outfile
+${WRK_ROOT}/utils/parseOutput/sum_core_throughput.sh $outfile
 
 

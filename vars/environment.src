@@ -12,6 +12,7 @@ export remote_net_dev=ens4f0
 export local_net_dev=ens4f0
 export wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 
+export band=$UTIL_DIR/bandwidth_measurement
 
 export ASYNC_NGINX=$ROOT_DIR/async_nginx_build
 source $ASYNC_NGINX/scripts/async_libsrcs.source
