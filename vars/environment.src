@@ -16,4 +16,5 @@ export band=$UTIL_DIR/bandwidth_measurement
 
 export ASYNC_NGINX=$ROOT_DIR/async_nginx_build
 source $ASYNC_NGINX/scripts/async_libsrcs.source
+export csv_export=/home/n869p538/csv_export
 

@@ -22,7 +22,7 @@ echo -n "" > $outfile
 for j in `seq 1 ${numCores}`; do
 	# write transfer per sec
 	#echo "Core ${j} initialized"
-	./utils/bandwidth_measurement/tls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &
+	${UTIL_DIR}/bandwidth_measurement/tls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &
 done
 
 #total bandwidth report

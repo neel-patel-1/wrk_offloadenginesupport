@@ -18,7 +18,7 @@ ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
 ssh ${remote_user} ${remote_nginx_start}  http_sendfile ${numServerCores}
 #tls config contains sendfile directive
 
-echo -n "" > $wrk_output/httpsendfile_${duration}_${fSize}.per_core_throughput
+echo -n "" > $outfile
 for j in `seq 1 ${numCores}`; do
 	# write transfer per sec
 	#echo "Core ${j} initialized"

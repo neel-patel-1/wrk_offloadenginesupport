@@ -14,8 +14,8 @@ source $WRK_ROOT/vars/environment.src
 wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 outfile=${wrk_output}/${prepend}/axdimm #allow callers to prepend a directory
 
-#ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-#ssh ${remote_user} ${remote_nginx_start}  axdimm ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  axdimm ${numServerCores}
 
 echo -n "" > ${outfile}
 for j in `seq 1 ${numCores}`; do
