@@ -22,7 +22,7 @@ for i in ${band}/maximum*; do
 		band+=("$($i)")
 	done
 
-	echo "${row},$(echo ${band[*]} | sed -e 's/[a-zA-Z/]//g' -e 's/\s\s*/,/g' )" >> $outfile
+	echo "${row},$(echo ${band[*]} | sed -e 's/[a-zA-Z/]//g' -e 's/\s\s*/,/g' -e 's/,$//g' )" >> $outfile
 
 done
 cp $outfile $csv_export

@@ -2,9 +2,6 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
-remote_host=n869p538@pollux.ittc.ku.edu
-remote_spec=/usr/local/cpu2017/bin/runcpu
-remote_cpu=/usr/local/cpu2017
 run=${1} #type of test
 clients=${2} #number of client threads
 servers=${3}

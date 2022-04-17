@@ -7,6 +7,7 @@ export HTTP_TEST_DIR=$UTIL_DIR/http_tests
 export SPEC_DIR=$UTIL_DIR/benchspec
 export PARSE_DIR=$UTIL_DIR/parseOutput
 export remote_nginx_start=/home/n869p538/async_nginx_build/nginx.sh
+export remote_scripts=/home/n869p538/async_nginx_build/scripts
 export remote_user="n869p538@pollux.ittc.ku.edu"
 export remote_net_dev=ens4f0
 export local_net_dev=ens4f0
@@ -21,8 +22,9 @@ source $ASYNC_NGINX/scripts/async_libsrcs.source
 
 #remote spec
 export remote_host=n869p538@pollux.ittc.ku.edu
-export remote_spec=/home/n869p538/async_nginx_build/cpu2017/bin/runcpu
-export remote_cpu=/home/n869p538/async_nginx_build/cpu2017
+export remote_spec=/home/n869p538/async_nginx_build/cpu_2017/bin/runcpu
+export remote_cpu=/home/n869p538/async_nginx_build/cpu_2017
+export spec_utils=$WRK_ROOT/utils/benchspec
 
 export csv_export=/home/n869p538/csv_export
 
