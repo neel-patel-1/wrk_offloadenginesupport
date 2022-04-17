@@ -15,7 +15,7 @@ outfile=${wrk_output}/$prepend/httpsendfile
 
 #stop remote nginx
 ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-ssh ${remote_user} ${remote_nginx_start}  http_sendfile ${numServerCores}
+ssh ${remote_user} ${remote_nginx_start}  httpsendfile ${numServerCores}
 #tls config contains sendfile directive
 
 echo -n "" > $outfile
