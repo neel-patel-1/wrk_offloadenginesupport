@@ -1,16 +1,17 @@
 declare -a server_cores=("10" )
 
-declare -a file_sizes=( "256K" )
+#declare -a file_sizes=( "256K" )
 #declare -a file_sizes=("4K" "16K" "64K" "128K" "256K" )
+declare -a file_sizes=( "1M" "2M" )
 
 declare -a methods=( "qtls" "axdimm" "http" "https"  )
-#declare -a methods=( "qtls" )
+#declare -a methods=( "axdimm" )
 
 declare -a copies=( "1" "5" )
 
 declare -a threads=( "1" )
 
-export duration=8h
+export duration=1m
 export numCores=10
 export numServerCores=10
 export task_set="taskset --cpu-list "
@@ -19,4 +20,7 @@ export task_set="taskset --cpu-list "
 export cpu_list=( "0,20" "11,31" "12,32" "13,33" "14,34" "15,35" "16,36" "17,37" "18,38" "19,39" )
 
 #spec
-declare -a tests=( "525.x264_r" "505.mcf_r" )
+declare -a tests=( "505.mcf_r" "525.x264_r" )
+
+#p_events
+declare -a p_events=( "llc_misses.mem_read" "llc_misses.mem_write" "llc_misses.pcie_read" "llc_misses.pcie_write" "UNC_M_CAS_COUNT.WR" )

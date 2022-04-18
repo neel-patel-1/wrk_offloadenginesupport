@@ -6,19 +6,21 @@ export QTLS_TEST_DIR=$UTIL_DIR/qtls_tests
 export HTTP_TEST_DIR=$UTIL_DIR/http_tests
 export SPEC_DIR=$UTIL_DIR/benchspec
 export PARSE_DIR=$UTIL_DIR/parseOutput
-export remote_nginx_start=/home/n869p538/async_nginx_build/nginx.sh
-export remote_scripts=/home/n869p538/async_nginx_build/scripts
-export remote_user="n869p538@pollux.ittc.ku.edu"
-export remote_net_dev=ens4f0
-export local_net_dev=ens4f0
-export wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
-
 export band=$UTIL_DIR/bandwidth_measurement
 
 #async nginx subdir
 export ASYNC_NGINX=$WRK_ROOT/async_nginx_build
 source $ASYNC_NGINX/scripts/async_libsrcs.source
 
+#remote config
+export remote_user="n869p538@pollux.ittc.ku.edu"
+export remote_net_dev=ens4f0
+export local_net_dev=ens4f0
+
+#remote nginx
+export remote_nginx_start=/home/n869p538/async_nginx_build/nginx.sh
+export remote_scripts=/home/n869p538/async_nginx_build/scripts
+export wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 
 #remote spec
 export remote_host=n869p538@pollux.ittc.ku.edu
@@ -26,7 +28,17 @@ export remote_spec=/home/n869p538/async_nginx_build/cpu_2017/bin/runcpu
 export remote_cpu=/home/n869p538/async_nginx_build/cpu_2017
 export spec_utils=$WRK_ROOT/utils/benchspec
 
-export csv_export=/home/n869p538/csv_export
+#remote ocperf
+export remote_ocperf=/home/n869p538/async_nginx_build/pmu-tools/ocperf
+
+
+export csv_export=/home/n869p538/csv_export #copy results here
+
+
 
 #source test vars when getting environment
 source ${WRK_ROOT}/vars/configs.src
+
+
+
+
