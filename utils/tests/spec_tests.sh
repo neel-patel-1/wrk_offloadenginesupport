@@ -2,13 +2,13 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
-export prepend="band_bench_$(date +%T)"
+export prepend="band_bench_separate_$(date +%T)"
 export outdir=${WRK_ROOT}/spec_res/$prepend
 [ ! -d "$outdir" ] && mkdir -p $outdir
 export outfile=${WRK_ROOT}/spec_res/$prepend/bench.csv
 
 copies=1
-#add_params="--fakereport "
+add_params="--nobuild"
 
 kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
@@ -20,6 +20,9 @@ kill_wrkrs() {
 }
 
 start_bench(){
+	#build the tests
+	ssh ${remote_host} ${remote_spec} --config=testConfig --action build $t
+
 	# load cores with background benchmarks
 	for b in `seq 0 $(($(echo "${cpu_list[*]}" | wc -w) - 2))`; do
 		ssh ${remote_host} ${task_set} ${cpu_list[$b]} ${remote_spec} ${spec_params} &

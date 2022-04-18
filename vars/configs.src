@@ -2,10 +2,9 @@ declare -a server_cores=("10" )
 
 declare -a file_sizes=( "256K" )
 #declare -a file_sizes=("4K" "16K" "64K" "128K" "256K" )
-#
+
 declare -a methods=( "qtls" "axdimm" "http" "https"  )
 #declare -a methods=( "qtls" )
-#
 
 declare -a copies=( "1" "5" )
 
@@ -16,10 +15,8 @@ export numCores=10
 export numServerCores=10
 export task_set="taskset --cpu-list "
 
-#export cpu_list=( "1-10,21-30" "11-19,31-39" )
-#export cpu_list=( "1-10,21-30" )
-#
-export cpu_list=( "1,21" "2,22" "3,23" "4,24" "5,25" "6,26" "7,27" "8,28" "9,29" "20,30" )
+#export cpu_list=( "1,21" "2,22" "3,23" "4,24" "5,25" "6,26" "7,27" "8,28" "9,29" "20,30" )
+export cpu_list=( "0,20" "11,31" "12,32" "13,33" "14,34" "15,35" "16,36" "17,37" "18,38" "19,39" )
 
 #spec
 declare -a tests=( "525.x264_r" "505.mcf_r" )
