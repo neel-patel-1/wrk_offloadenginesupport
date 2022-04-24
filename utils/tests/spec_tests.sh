@@ -2,13 +2,14 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
-export prepend="just_axdimm_505_$(date +%T)"
+export prepend="test_axdimm_$(date +%T)"
 export outdir=${WRK_ROOT}/spec_res/$prepend
 [ ! -d "$outdir" ] && mkdir -p $outdir
 export outfile=${WRK_ROOT}/spec_res/$prepend/bench.csv
 
 copies=1
-add_params="--nobuild"
+export fSize=256K
+add_params="--nobuild "
 
 kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
@@ -67,11 +68,11 @@ move_res(){
 main(){
 	for m in "${methods[@]}"; do
 		for t in "${tests[@]}"; do
-			spec_params="--config=testConfig.cfg  --noreportable --iterations=1 --copies=$copies ${add_params} -o txt ${t}" # change test
+			spec_params="--config=testConfig.cfg  --iterations=1 --copies=$copies ${add_params} -o txt ${t}" # change test
 			kill_procs #kills any remote procs
 			start_bench #start remote spec cpu instances
 			start_band #start worker clients for remtoe nginx server
-			wait_for_bench #benchmark completes here stop wrkrs
+			wait_for_bench #benchmark completes here stop wrkr proc
 			move_res #move results to specified dir
 			kill_wrkrs #kill workers
 		done

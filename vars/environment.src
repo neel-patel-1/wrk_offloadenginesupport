@@ -14,8 +14,9 @@ source $ASYNC_NGINX/scripts/async_libsrcs.source
 
 #remote config
 export remote_user="n869p538@pollux.ittc.ku.edu"
-export remote_net_dev=ens4f0
-export local_net_dev=ens4f0
+export remote_net_dev=ens4f1
+export local_net_dev=ens4f1
+export remote_ip=192.168.2.2
 
 #remote nginx
 export remote_nginx_start=/home/n869p538/async_nginx_build/nginx.sh
