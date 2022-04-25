@@ -17,8 +17,8 @@ outfile=${wrk_output}/${prepend}/qtls #allow callers to prepend a directory
 ${QTLS_TEST_DIR}/getIps.sh
 
 #stop remote nginx
-ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-ssh ${remote_user} ${remote_nginx_start}  qtls ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  qtls ${numServerCores}
 
 echo -n "" > $outfile
 for j in `seq 1 ${numCores}`; do

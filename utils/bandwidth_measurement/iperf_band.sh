@@ -7,7 +7,7 @@ export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 
 #establish servers on remote host
-ssh n869p538@pollux.ittc.ku.edu & <<"FI" 
+[ "${remote_user}" != "" ] && ssh n869p538@pollux.ittc.ku.edu & <<"FI" 
 for i in `seq 2 12`;
 do 
 	taskset -c $i /usr/bin/iperf -s -B 192.168.$i.2 & 

@@ -15,8 +15,8 @@ outfile=${wrk_output}/${prepend}/https
 
 
 #stop remote nginx
-ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-ssh ${remote_user} ${remote_nginx_start}  https ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  https ${numServerCores}
 
 echo -n "" > $outfile
 for j in `seq 1 ${numCores}`; do

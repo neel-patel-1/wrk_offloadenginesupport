@@ -1,13 +1,13 @@
 declare -a server_cores=("10" )
 
-declare -a file_sizes=( "256K" )
-#declare -a file_sizes=("4K" "16K" "64K" "128K" "256K" )
+#declare -a file_sizes=( "256K" )
+declare -a file_sizes=("4K" "16K" "64K" "128K" "256K" )
 #declare -a file_sizes=( "1M" "2M" )
 
-declare -a methods=( "axdimm"  )
+declare -a methods=( "http"  )
 #declare -a methods=( "axdimm" )
 
-export duration=8h
+export duration=10
 export numCores=10
 export numServerCores=10
 

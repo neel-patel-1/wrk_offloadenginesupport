@@ -4,3 +4,5 @@ wrk
 single_core_res
 *results/
 wrk_files
+*.txt
+*res/
