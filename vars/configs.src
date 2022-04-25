@@ -7,7 +7,7 @@ declare -a file_sizes=("4K" "16K" "64K" "128K" "256K" )
 declare -a methods=( "http"  )
 #declare -a methods=( "axdimm" )
 
-export duration=10
+export duration=1m
 export numCores=10
 export numServerCores=10
 
