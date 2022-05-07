@@ -24,7 +24,7 @@ echo -n "" > $outfile
 for j in `seq 1 ${numCores}`; do
 	# write transfer per sec
 	# echo "Core ${j} initialized"
-	${QTLS_TEST_DIR}/qtls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} $(( $j % 10 + 2 )) &
+	${QTLS_TEST_DIR}/qtls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &
 done
 
 #total bandwidth report

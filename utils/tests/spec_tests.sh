@@ -22,7 +22,11 @@ kill_wrkrs() {
 
 start_bench(){
 	#build the tests
-	ssh ${remote_host} ${remote_spec} --config=testConfig --action build $t
+	if [ "$dry_run" = "y" ]; then
+		echo "ssh ${remote_host} ${remote_spec} --config=testConfig --action build $t"
+	else
+		ssh ${remote_host} ${remote_spec} --config=testConfig --action build $t
+	fi
 	if [ "$separate" = "y" ]; then
 		cpu_list=$sep_cpu_list
 	else
@@ -31,7 +35,11 @@ start_bench(){
 
 	# load cores with background benchmarks
 	for b in `seq 0 $(($(echo "${cpu_list[*]}" | wc -w) - 2))`; do
-		ssh ${remote_host} ${task_set} ${cpu_list[$b]} ${remote_spec} ${spec_params} &
+		if [ "$dry_run" = "y" ]; then
+			echo "ssh ${remote_host} ${task_set} ${cpu_list[$b]} ${remote_spec} ${spec_params} &"
+		else
+			ssh ${remote_host} ${task_set} ${cpu_list[$b]} ${remote_spec} ${spec_params} &
+		fi
 	done
 	# use last core for final benchmark whose results we are interested
 	# if there are perf events to calculate, get them here
@@ -39,26 +47,44 @@ start_bench(){
 		#perf events
 		ssh ${remote_host} ${remote_scripts}/ocperf/enable_events.sh
 		p_com="stat -e $(echo ${p_events[*]} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
-		ssh ${remote_host} ${remote_ocperf} ${p_com} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} 1>spec_out 2>$outdir/${t}_${m}_${cpus}_perf &
+		if [ "$dry_run" = "y" ]; then
+			echo "ssh ${remote_host} ${remote_ocperf} ${p_com} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} 1>spec_out 2>$outdir/${t}_${m}_${cpus}_perf &"
+		else
+			ssh ${remote_host} ${remote_ocperf} ${p_com} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} 1>spec_out 2>$outdir/${t}_${m}_${cpus}_perf &
+		fi
         else
-		ssh ${remote_host} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} > spec_out &
+		if [ "$dry_run" = "y" ]; then
+			echo "ssh ${remote_host} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} > spec_out &"
+		else
+			ssh ${remote_host} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} > spec_out &
+		fi
 	fi
 
 	#export var for output
 	cpus="${cpu_list[0]}-${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]}"
 	# wait till benchmark started 
-	tail -f -n0 spec_out | grep -qe "Running Benchmarks"
+	if [ "$dry_run" != "y" ]; then
+		tail -f -n0 spec_out | grep -qe "Running Benchmarks"
+	fi
 }
 
 start_band(){
 	# start bandwidth test
 	echo "benchmark started -- beginning traffic"
-	${band_dir}/maximum_${m}_throughput.sh  > $outdir/${t}_${m}_${cpus}_band &
+	if [ "$dry_run" = "y" ]; then
+		echo "${band_dir}/maximum_${m}_throughput.sh  > $outdir/${t}_${m}_${cpus}_band &"
+	else
+		${band_dir}/maximum_${m}_throughput.sh  > $outdir/${t}_${m}_${cpus}_band &
+	fi
 	bPid=$!
 }
 
 wait_for_bench(){
-	tail -f -n0 spec_out | grep  -qe "runcpu finished"
+	if [ "$dry_run" = "y" ]; then
+		echo "tail -f -n0 spec_out | grep  -qe \"runcpu finished\""
+	else
+		tail -f -n0 spec_out | grep  -qe "runcpu finished"
+	fi
 	echo "benchmark complete -- killing traffic"
 	sudo kill -s 2 $bPid
 }
