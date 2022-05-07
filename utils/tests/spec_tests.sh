@@ -2,10 +2,10 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
-export prepend="test_axdimm_$(date +%T)"
+export prepend="${benchmark_name}"
 export outdir=${WRK_ROOT}/spec_res/$prepend
 [ ! -d "$outdir" ] && mkdir -p $outdir
-export outfile=${WRK_ROOT}/spec_res/$prepend/bench.csv
+export outfile=${WRK_ROOT}/spec_res/$prepend/bench_$(date +%T).csv
 
 copies=1
 export fSize=256K
@@ -23,6 +23,11 @@ kill_wrkrs() {
 start_bench(){
 	#build the tests
 	ssh ${remote_host} ${remote_spec} --config=testConfig --action build $t
+	if [ "$separate" = "y" ]; then
+		cpu_list=$sep_cpu_list
+	else
+		cpu_list=$co_cpu_list
+	fi
 
 	# load cores with background benchmarks
 	for b in `seq 0 $(($(echo "${cpu_list[*]}" | wc -w) - 2))`; do
@@ -31,6 +36,8 @@ start_bench(){
 	# use last core for final benchmark whose results we are interested
 	# if there are perf events to calculate, get them here
 	if [ ! -z "$p_events" ]; then
+		#perf events
+		ssh ${remote_host} ${remote_scripts}/ocperf/enable_events.sh
 		p_com="stat -e $(echo ${p_events[*]} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
 		ssh ${remote_host} ${remote_ocperf} ${p_com} ${task_set} ${cpu_list[$(($(echo "${cpu_list[*]}" | wc -w) - 1))]} ${remote_spec} ${spec_params} 1>spec_out 2>$outdir/${t}_${m}_${cpus}_perf &
         else
@@ -46,7 +53,7 @@ start_bench(){
 start_band(){
 	# start bandwidth test
 	echo "benchmark started -- beginning traffic"
-	${band}/maximum_${m}_throughput.sh  > $outdir/${t}_${m}_${cpus}_band &
+	${band_dir}/maximum_${m}_throughput.sh  > $outdir/${t}_${m}_${cpus}_band &
 	bPid=$!
 }
 

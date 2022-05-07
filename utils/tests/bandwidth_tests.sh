@@ -3,11 +3,11 @@ export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
 
-export prepend="max_http_baseline_2$(date +%T)"
+export prepend="${band_test_name}"
 
 [ ! -d "${WRK_ROOT}/csv_res/$prepend" ] && mkdir -p ${WRK_ROOT}/csv_res/$prepend
 
-outfile=${WRK_ROOT}/csv_res/$prepend/bandwidth_comp.csv
+outfile=${WRK_ROOT}/csv_res/$prepend/bandwidth_comp_$(date +%T).csv
 [ ! -f "$outfile" ] && touch $outfile
 
 [ "$scalp" = "y" ] && ${scapy_dir}/syn_spoof.py
