@@ -10,6 +10,7 @@ export outfile=${WRK_ROOT}/spec_res/$prepend/bench_$(date +%T).csv
 copies=1
 export fSize=256K
 add_params="--nobuild "
+export duration=8h #ensure tests background bandwidth endures
 
 kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
@@ -28,9 +29,9 @@ start_bench(){
 		ssh ${remote_host} ${remote_spec} --config=testConfig --action build $t
 	fi
 	if [ "$separate" = "y" ]; then
-		cpu_list=$sep_cpu_list
+		cpu_list=("${sep_cpu_list[@]}")
 	else
-		cpu_list=$co_cpu_list
+		cpu_list=("${co_cpu_list[@]}")
 	fi
 
 	# load cores with background benchmarks

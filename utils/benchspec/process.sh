@@ -3,6 +3,8 @@ export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
 
+outdir=/home/n869p538/wrk_offloadenginesupport/spec_res/axdimm_char_dev_same_fewer_server_cores
+outfile=test.csv
 cd $outdir
 
 echo "Bandwidth(GBit/s)" > $outfile
@@ -36,13 +38,19 @@ for f in "${tests[@]}"; do #for each benchmark
 	ev_row=$(echo "stats,$(echo ${p_events[*]} | sed -e 's/ /,/g' )") #row with the events
 	echo $ev_row >> $outfile
 	for g in "${methods[@]}"; do  #for each method
+		badname=0
 		sc=()
 		sc+=("$g") #label the row
 		for p in "${p_events[@]}"; do
 			if [ ! -z "$(grep $p ${f}_${g}_*_perf )" ]; then
 			       	sc+=( "$(grep $p ${f}_${g}_*_perf | grep -v "Add" | sed -e"s/,//g" -e "s/$p//g" -e "s/\s\s*//g" )" ) #could find event in file
-			else
-				sc+=( "n/a" )
+			else #need user to tell us the name
+				pseudo="${name_mismatch[ $badname ]}"
+				sc+=( "$(grep $pseudo ${f}_${g}_*_perf |\
+				       	grep -v "Add" |\
+				       	sed -e"s/,//g" -e "s/${pseudo}.*//g"\
+				       	-e "s/\s\s*//g" | awk 'BEGIN{sum=0} {sum+=$1} END{print sum}')${mis_append}" )
+					badname=$(( $badname + 1 ))
 			fi
 		done
 		echo "$(echo ${sc[*]} | sed -e 's/ /,/g' )" >> $outfile
