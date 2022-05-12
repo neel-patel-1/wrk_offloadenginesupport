@@ -3,8 +3,6 @@ export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
 
-outdir=/home/n869p538/wrk_offloadenginesupport/spec_res/axdimm_char_dev_same_fewer_server_cores
-outfile=test.csv
 cd $outdir
 
 echo "Bandwidth(GBit/s)" > $outfile

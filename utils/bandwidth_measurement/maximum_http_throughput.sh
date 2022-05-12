@@ -19,7 +19,7 @@ outfile=${wrk_output}/${prepend}/http #allow callers to prepend a directory
 [ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  http ${numServerCores}
 
 echo -n "" > $outfile
-for j in `seq 1 ${numCores}`; do
+for j in `seq 0 $(( $numCores - 1 ))`; do
 	# write transfer per sec
 	#echo "Core ${j} initialized"
 	${UTIL_DIR}/bandwidth_measurement/http_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &

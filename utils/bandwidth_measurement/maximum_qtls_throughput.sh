@@ -21,7 +21,7 @@ ${QTLS_TEST_DIR}/getIps.sh
 [ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  qtls ${numServerCores}
 
 echo -n "" > $outfile
-for j in `seq 1 ${numCores}`; do
+for j in `seq 0 $((numCores - 1))`; do
 	# write transfer per sec
 	# echo "Core ${j} initialized"
 	${QTLS_TEST_DIR}/qtls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &

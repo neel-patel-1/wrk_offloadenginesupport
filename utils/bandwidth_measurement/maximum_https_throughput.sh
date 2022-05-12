@@ -19,7 +19,7 @@ outfile=${wrk_output}/${prepend}/https
 [ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  https ${numServerCores}
 
 echo -n "" > $outfile
-for j in `seq 1 ${numCores}`; do
+for j in `seq 0 $(( $numCores - 1 ))`; do
 	# write transfer per sec
 	#echo "Core ${j} initialized"
 	${UTIL_DIR}/bandwidth_measurement/tls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &

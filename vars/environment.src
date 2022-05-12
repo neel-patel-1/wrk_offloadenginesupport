@@ -8,6 +8,7 @@ export SPEC_DIR=$UTIL_DIR/benchspec
 export PARSE_DIR=$UTIL_DIR/parseOutput
 export band_dir=$UTIL_DIR/bandwidth_measurement
 export scapy_dir=$UTIL_DIR/scalp
+export test_dir=$UTIL_DIR/tests
 
 #async nginx subdir
 export ASYNC_NGINX=$WRK_ROOT/async_nginx_build

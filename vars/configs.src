@@ -4,12 +4,12 @@ declare -a server_cores=("10" )
 declare -a file_sizes=("4K" "16K" "64K" "128K" "256K" )
 #declare -a file_sizes=( "1M" "2M" )
 
-declare -a methods=( "axdimm" )
+#declare -a methods=( "axdimm" )
 #declare -a methods=( "http" "https" "axdimm" "qtls" )
-#declare -a methods=( "qtls" )
+declare -a methods=( "http" )
 
 export duration=10
-export numCores=10
+#export numCores=40
 
 #server core configs
 export numServerCores=40
@@ -29,6 +29,9 @@ declare -a tests=( "505.mcf_r" "525.x264_r" )
 declare -a p_events=( "llc_misses.mem_read" "llc_misses.mem_write" "llc_misses.pcie_read" "llc_misses.pcie_write" "UNC_M_CAS_COUNT.WR" )
 declare -a name_mismatch=( "unc_m_cas_count_wr" )
 declare -a mis_append=( "commands" )
+#separate duration for measuring perf_events for nginx 40 core
+#should be less than server duration
+export perf_dur=10
 
 export dry_run=n
 

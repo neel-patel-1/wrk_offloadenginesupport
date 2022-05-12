@@ -18,7 +18,7 @@ outfile=${wrk_output}/${prepend}/axdimm #allow callers to prepend a directory
 [ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  axdimm ${numServerCores}
 
 echo -n "" > ${outfile}
-for j in `seq 1 ${numCores}`; do
+for j in `seq 0 $(( $numCores - 1 ))`; do
 	# write transfer per sec
 	#echo "Core ${j} initialized"
 	${WRK_ROOT}/utils/bandwidth_measurement/offload_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &
