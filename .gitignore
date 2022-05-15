@@ -1,8 +1,13 @@
 obj/
 wrk
 *.swp
+*.swn
+*.swo
 single_core_res
 *results/
 wrk_files
 *.txt
 *res/
+*_perf
+*_band
+wrk_output

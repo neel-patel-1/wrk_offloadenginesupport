@@ -4,8 +4,9 @@ source $WRK_ROOT/vars/environment.src
 
 [ "$duration" = "" ] && duration=10
 [ "$numCores" = "" ] && numCores=10
-[ "$fSize" = "" ] && fSize=256K
-[ "$numServerCores" = "" ] && numServerCores=10
+[ -z "$fSize" ] && echo "no file size selected" && exit
+[ -z "$numServerCores" ] && echo "no server cores selected" && exit
+[ -z "$numCores" ] && echo "no server cores selected" && exit
 [ "$prepend" = "" ] && prepend=$(date +%T)
 
 [ "$prepend" = "" ] && prepend=$(date +%T)
