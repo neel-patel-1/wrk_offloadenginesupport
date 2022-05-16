@@ -15,8 +15,8 @@ export ASYNC_NGINX=$WRK_ROOT/async_nginx_build
 source $ASYNC_NGINX/scripts/async_libsrcs.source
 
 #remote config
-export remote_user="n869p538@pollux.ittc.ku.edu"
-export remote_net_dev=ens4f1
+export remote_user="n869p538@axdimm.ittc.ku.edu"
+export remote_net_dev=enp2s0f1np1
 export local_net_dev=ens4f1
 export remote_ip=192.168.2.2
 export http_port=80
@@ -27,7 +27,7 @@ export remote_scripts=/home/n869p538/async_nginx_build/scripts
 export wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 
 #remote spec
-export remote_host=n869p538@pollux.ittc.ku.edu
+export remote_host=n869p538@axdimm.ittc.ku.edu
 export remote_spec=/home/n869p538/async_nginx_build/cpu_2017/bin/runcpu
 export remote_cpu=/home/n869p538/async_nginx_build/cpu_2017
 export spec_utils=$WRK_ROOT/utils/benchspec

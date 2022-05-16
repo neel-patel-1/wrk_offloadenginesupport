@@ -5,6 +5,7 @@ source $WRK_ROOT/vars/environment.src
 
 [ ! -z "$numServerCores" ] && echo "global server cores set in config.src -- cannot vary cores for testing" && exit
 [ ! -z "$numCores" ] && echo "global client cores set in config.src -- cannot vary cores for testing" && exit
+[ ! -z "$numCores" ] && echo "global duration in config.src -- cannot control duration for testing" && exit
 
 #get perf sleep test func
 source ${test_dir}/testutils.sh
@@ -16,8 +17,9 @@ rm -rf $outdir/*
 
 #40 core test
 #declare -a serverCoreList=( "1" "5" "10" "20" "40" )
-declare -a serverCoreList=( "1" "5" )
-declare -a numCliCores=( "1" "5" )
+declare -a numCliCores=( "12" "15" "18" )
+#declare -a numCliCores=( "1" "5" "10" "20" "40" )
+declare -a serverCoreList=( "10" )
 export fSize=256K
 
 #axis declarations
@@ -48,14 +50,19 @@ for method in "${methods[@]}"; do
 			band_files+=( "$band_file" )
 			perf_files+=( "$perf_file" )
 			echo "${method} --- serv:${numServerCores} --- cli:${numCores}"
+			>&2 echo "band started"
 			start_band 
+			>&2 echo "perf started"
 			perfmon #measure syswide events
 			kill_procs
+			sleep 3 #wait for writers
 		done
 	done
 	export title="$method --- x-axis:server_cores --- y-axis:client_cores"
-	two_var_app
-	two_var_perf
+	>&2 two_var_app
+	echo "bandwidth written"
+	>&2 two_var_perf
+	echo "perf written"
 done
 
 export outfile=$outdir/nginx_all_perf_bands.csv

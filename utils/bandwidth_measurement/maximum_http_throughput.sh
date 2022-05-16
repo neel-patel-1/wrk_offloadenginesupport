@@ -3,7 +3,6 @@ export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
 [ "$duration" = "" ] && duration=10
-[ "$numCores" = "" ] && numCores=10
 [ -z "$fSize" ] && echo "no file size selected" && exit
 [ -z "$numServerCores" ] && echo "no server cores selected" && exit
 [ -z "$numCores" ] && echo "no server cores selected" && exit
@@ -16,8 +15,8 @@ wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 outfile=${wrk_output}/${prepend}/http #allow callers to prepend a directory
 
 #stop remote nginx
-[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  http ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} sudo ${remote_nginx_start}  stop ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} sudo ${remote_nginx_start}  http ${numServerCores}
 
 echo -n "" > $outfile
 for j in `seq 0 $(( $numCores - 1 ))`; do

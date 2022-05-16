@@ -3,8 +3,8 @@ export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 [ "$duration" = "" ] && duration=10
 [ "$fSize" = "" ] && fSize=256K
-[ -z "$numServerCores" ] && echo "no server cores selected" && exit
-[ -z "$numCores" ] && echo "no client cores selected" && exit
+#[ -z "$numServerCores" ] && echo "no server cores selected" && exit
+#[ -z "$numCores" ] && echo "no client cores selected" && exit
 [ "$prepend" = "" ] && prepend=$(date +%T)
 
 [ "$prepend" = "" ] && prepend=$(date +%T)
@@ -15,8 +15,8 @@ outfile=${wrk_output}/${prepend}/https
 
 
 #stop remote nginx
-[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  https ${numServerCores}
+#[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
+#[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  https ${numServerCores}
 
 echo -n "" > $outfile
 for j in `seq 0 $(( $numCores - 1 ))`; do
@@ -26,7 +26,6 @@ for j in `seq 0 $(( $numCores - 1 ))`; do
 done
 
 #total bandwidth report
-wait
 ${WRK_ROOT}/utils/parseOutput/sum_core_throughput.sh $outfile
 
 

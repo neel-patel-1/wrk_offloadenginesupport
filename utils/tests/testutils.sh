@@ -19,6 +19,7 @@ start_band(){
 	[ -z "$numCores" ] && echo "no client cores selected" && exit
 	[ -z "$band_file" ] && echo "no bandwidth output file specified" && exit
 	[ -z "$outdir" ] && echo "no output directory specified" && exit
+	[ -z "$write_time" ] && export write_time=2
 	[ ! -d "$outdir" ] && mkdir -p $outdir
 
 	#echo server:$numServerCores
@@ -74,6 +75,7 @@ two_var_perf(){
 		echo "" >> $outfile 
 		[ ! -z "$title" ] && echo "$title" >> $outfile
 		echo "$p" >> $outfile
+		inc_bad=n #assume good naming
 
 		echo ",$(echo "${horiz[*]}" | sed 's/ /,/g' )" >> $outfile
 		for y in ${vert[@]}; do
@@ -92,14 +94,19 @@ two_var_perf(){
 						-e "s/\s\s*//g" |  tee $outdir/rem_name.txt | awk 'BEGIN{sum=0} {sum+=$1} END{print sum}' |\
 						tee $outdir/after_sum.txt )
 					points+=( "$np" )
-					inc_bad=y
+					inc_bad=y #we need to progress in bad name array
 				fi
 			done
 
 			echo "${points[*]}" | sed -e 's/ /,/g' >> $outfile
 		done
-		[ ! -z "$inc_bad" ] && badname=$(( $badname + 1 ))
+		[ "$inc_bad" = "y" ] && badname=$(( $badname + 1 )) #actually increment bad name counter
 	done
+}
+
+post_process_table(){
+	grep -Eo '([0-9]+)[A-Za-z]+' $outfile | head -n 1
+	sed -E 's/\([0-9]+\)[A-Za-z]+,/\1foo/g' $outfile
 }
 
 process_pevents(){

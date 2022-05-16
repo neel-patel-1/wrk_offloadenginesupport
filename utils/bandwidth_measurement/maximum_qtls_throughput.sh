@@ -19,7 +19,7 @@ ${QTLS_TEST_DIR}/getIps.sh
 
 #stop remote nginx
 [ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
-[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  qtls ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  qtls ${numServerCores} 
 
 echo -n "" > $outfile
 for j in `seq 0 $((numCores - 1))`; do
@@ -31,5 +31,5 @@ done
 #total bandwidth report
 wait
 ${WRK_ROOT}/utils/parseOutput/sum_core_throughput.sh $outfile
-
+cat $outfile
 
