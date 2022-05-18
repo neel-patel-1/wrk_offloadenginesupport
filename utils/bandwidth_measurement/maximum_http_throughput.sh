@@ -15,8 +15,8 @@ wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 outfile=${wrk_output}/${prepend}/http #allow callers to prepend a directory
 
 #stop remote nginx
-[ "${remote_user}" != "" ] && ssh ${remote_user} sudo ${remote_nginx_start}  stop ${numServerCores}
-[ "${remote_user}" != "" ] && ssh ${remote_user} sudo ${remote_nginx_start}  http ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}
+[ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  http ${numServerCores}
 
 echo -n "" > $outfile
 for j in `seq 0 $(( $numCores - 1 ))`; do

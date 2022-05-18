@@ -18,7 +18,7 @@ source $ASYNC_NGINX/scripts/async_libsrcs.source
 export remote_user="n869p538@axdimm.ittc.ku.edu"
 export remote_net_dev=enp2s0f1np1
 export local_net_dev=ens4f1
-export remote_ip=192.168.2.2
+export remote_ip=localhost
 export http_port=80
 
 #remote nginx

@@ -10,5 +10,5 @@ core=${1}
 duration=${2}
 fSize=${3}
 
-echo "export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/crypto_mb/2020u3/lib:$AXDIMM_DIR/ipsec-mb/0.55/lib"
+#export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/crypto_mb/2020u3/lib:$AXDIMM_DIR/ipsec-mb/0.55/lib
 taskset -c ${core} ${WRK_ROOT}/wrk -t1 -c64 -e qatengine -d${duration} https://${remote_ip}:443/file_${fSize}.txt

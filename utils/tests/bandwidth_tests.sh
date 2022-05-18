@@ -15,7 +15,7 @@ echo -n "" > $outfile
 echo "File Size,$(echo ${file_sizes[*]} | sed -e 's/ /,/g'  )" >> $outfile
 for i in "${methods[@]}"; do
 	row=$(echo $i | grep -Eo 'maximum_[a-z]*' | sed 's/maximum_//g')
-	band=()
+	band=( "$i" )
 	for f in "${file_sizes[@]}" 
 	do
 		export fSize=$f

@@ -6,13 +6,13 @@ declare -a file_sizes=( "4K" "16K" "64K" "128K" "256K" )
 
 #client configurations
 #declare -a methods=( "qtls" )
-declare -a methods=( "http" "https" )
+declare -a methods=( "axdimm" "http" "https" )
 export duration=10
 export fSize=256K
-#export numCores=20
+export numCores=10
 
 #server core configs
-#export numServerCores=40
+export numServerCores=10
 export task_set="taskset --cpu-list "
 export separate=n
 export sep_cpu_list=( "21" "22" "23" "24" "25" "26" "27" "28" "29" "30" )
@@ -37,5 +37,5 @@ export perf_dur=10
 export dry_run=n
 
 #names
-export band_test_name=axdimm_test
+export band_test_name=axdimm_bandwidth_test
 export benchmark_name=axdimm_char_dev_same_fewer_server_cores
