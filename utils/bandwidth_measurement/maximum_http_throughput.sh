@@ -5,14 +5,14 @@ source $WRK_ROOT/vars/environment.src
 [ "$duration" = "" ] && duration=10
 [ -z "$fSize" ] && echo "no file size selected" && exit
 [ -z "$numServerCores" ] && echo "no server cores selected" && exit
-[ -z "$numCores" ] && echo "no server cores selected" && exit
+[ -z "$numCores" ] && echo "no client cores selected" && exit
 [ "$prepend" = "" ] && prepend=$(date +%T)
 
 [ "$prepend" = "" ] && prepend=$(date +%T)
 [ ! -d "${wrk_output}/${prepend}" ] && mkdir -p ${wrk_output}/${prepend}
 
 wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
-outfile=${wrk_output}/${prepend}/http #allow callers to prepend a directory
+export outfile=${wrk_output}/${prepend}/http #allow callers to prepend a directory
 
 #stop remote nginx
 [ "${remote_user}" != "" ] && ssh ${remote_user} ${remote_nginx_start}  stop ${numServerCores}

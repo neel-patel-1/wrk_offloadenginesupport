@@ -15,25 +15,27 @@ export ASYNC_NGINX=$WRK_ROOT/async_nginx_build
 source $ASYNC_NGINX/scripts/async_libsrcs.source
 
 #remote config
-export remote_user="n869p538@axdimm.ittc.ku.edu"
-export remote_net_dev=enp2s0f1np1
+export remote_host=n869p538@pollux.ittc.ku.edu
+export remote_user="n869p538@pollux.ittc.ku.edu"
+export remote_net_dev=ens4f1
 export local_net_dev=ens4f1
-export remote_ip=localhost
+export remote_ip=192.168.2.2
 export http_port=80
+export https_port=443
 
+export remote_root=/home/n869p538/async_nginx_build
 #remote nginx
-export remote_nginx_start=/home/n869p538/async_nginx_build/nginx.sh
-export remote_scripts=/home/n869p538/async_nginx_build/scripts
+export remote_nginx_start=$remote_root/nginx.sh
+export remote_scripts=$remote_root/scripts
 export wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
 
 #remote spec
-export remote_host=n869p538@axdimm.ittc.ku.edu
-export remote_spec=/home/n869p538/async_nginx_build/cpu_2017/bin/runcpu
+export remote_spec=$remote_root/cpu_2017/bin/runcpu
 export remote_cpu=/home/n869p538/async_nginx_build/cpu_2017
 export spec_utils=$WRK_ROOT/utils/benchspec
 
 #remote ocperf
-export remote_ocperf=/home/n869p538/async_nginx_build/pmu-tools/ocperf
+export remote_ocperf=${remote_root}/pmu-tools/ocperf
 
 
 export csv_export=/home/n869p538/csv_export #copy results here

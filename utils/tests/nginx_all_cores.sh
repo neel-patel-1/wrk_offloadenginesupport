@@ -17,8 +17,7 @@ rm -rf $outdir/*
 
 #40 core test
 #declare -a serverCoreList=( "1" "5" "10" "20" "40" )
-declare -a numCliCores=( "12" "15" "18" )
-#declare -a numCliCores=( "1" "5" "10" "20" "40" )
+declare -a numCliCores=( "1" "5" "10" )
 declare -a serverCoreList=( "10" )
 export fSize=256K
 

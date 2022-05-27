@@ -2,9 +2,8 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 [ "$duration" = "" ] && duration=10
-[ "$numCores" = "" ] && numCores=10
-[ "$fSize" = "" ] && fSize=256K
-[ "$numServerCores" = "" ] && numServerCores=10
+[ "$fSize" = "" ] && echo "no file size selected" && exit
+[ "$numCores" = "" ] && echo "no client cores selected" && exit
 [ -z "$numCores" ] && echo "no server cores selected" && exit
 [ "$prepend" = "" ] && prepend=$(date +%T)
 

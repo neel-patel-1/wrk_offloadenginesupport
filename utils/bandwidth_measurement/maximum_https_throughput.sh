@@ -12,7 +12,7 @@ source $WRK_ROOT/vars/environment.src
 [ ! -d "${wrk_output}/${prepend}" ] && mkdir -p ${wrk_output}/${prepend}
 
 wrk_output=/home/n869p538/wrk_offloadenginesupport/wrk_files
-outfile=${wrk_output}/${prepend}/https
+export outfile=${wrk_output}/${prepend}/https
 
 
 #stop remote nginx
@@ -28,6 +28,6 @@ done
 
 #total bandwidth report
 wait
-${WRK_ROOT}/utils/parseOutput/sum_core_throughput.sh $outfile
+${PARSE_DIR}/sum_core_throughput.sh $outfile
 
 

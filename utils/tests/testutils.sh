@@ -61,6 +61,35 @@ two_var_app(){ #files should be labeled x_y where x is the horizontal label and 
 	done
 }
 
+perf_events_row(){
+	# measure perf_events for a specific number of clients and servers
+	[ -z "$outdir" ] && echo "no output directory specified" && exit
+	[ -z "$outfile" ] && echo "no outfile specified" && exit
+	[ ! -f "$outfile" ] && echo -n "" > $outfile
+	[ -z "$p_events" ] && echo "no perf events" && exit
+	[ -z "$perf_file" ] && perf_file=$outdir/${numServerCores}_${numCores}_perf
+	#need separate table for each perf_event
+	badname=0 #badname counter
+	band=( "$(cat $outdir/${numServerCores}_${numCores}_band | grep -Eo '[0-9.][0-9.]*')" )
+	points=( "$method" )
+	for p in "${p_events[@]}"; do
+		>&2 echo "processing event: $p for method: $method"
+		if [ ! -z "$(grep $p $perf_file )" ]; then #grep for the perf event
+			points+=( "$(grep $p $perf_file | grep -v "Add" | sed -e"s/,//g" -e "s/$p//g" -e "s/\s\s*//g" )" ) #could find event in file
+		else #need user to tell us the name
+			pseudo="${name_mismatch[ $badname ]}"
+			np=$(grep $pseudo $perf_file |\
+				grep -v "Add" | tee $outdir/after_add.txt |\
+				sed -e"s/,//g" -e "s/${pseudo}.*//g" \
+				-e "s/\s\s*//g" |  tee $outdir/rem_name.txt | awk 'BEGIN{sum=0} {sum+=$1} END{print sum}' |\
+				tee $outdir/after_sum.txt )
+			points+=( "$np" )
+			badname=$(( $badname + 1 ))
+		fi
+	done
+	echo "${method},${band}$(echo "${points[*]}" | sed -e 's/ /,/g' | sed -e 's/[A-Za-z]*,/,/g' -e 's/[A-Za-z][A-Za-z]*([0-9][0-9]\.[0-9]*%),/,/g' )" >> $outfile
+}
+
 two_var_perf(){
 	[ -z "$outdir" ] && echo "no output directory specified" && exit
 	[ -z "$outfile" ] && echo "no outfile specified" && exit
@@ -77,6 +106,7 @@ two_var_perf(){
 		echo "$p" >> $outfile
 		inc_bad=n #assume good naming
 
+		#>&2 echo "$p"
 		echo ",$(echo "${horiz[*]}" | sed 's/ /,/g' )" >> $outfile
 		for y in ${vert[@]}; do
 			points=( "$y" )
