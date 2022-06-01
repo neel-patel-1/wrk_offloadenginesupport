@@ -6,10 +6,10 @@ declare -a file_sizes=( "4K" "16K" "64K" "128K" "256K" )
 
 #client configurations -- method options include ( "axdimm" "qtls" "http" "https" )
 declare -a methods=(  "https"  )
-export duration=30
+export duration=10
 export perf_dur=10
 export fSize=256K
-export numCores=20
+export numCores=10
 
 #server core configs
 export numServerCores=10
