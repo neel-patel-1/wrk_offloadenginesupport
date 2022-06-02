@@ -1,6 +1,6 @@
 #!/bin/bash
 duration=${2}
-core=${1}
+export core=${1}
 fSize=${3}
 out_file=${4}
 

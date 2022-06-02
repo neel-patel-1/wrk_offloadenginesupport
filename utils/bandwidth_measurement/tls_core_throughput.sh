@@ -2,7 +2,7 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 duration=${2}
-core=${1}
+export core=${1}
 fSize=${3}
 out_file=${4}
 
