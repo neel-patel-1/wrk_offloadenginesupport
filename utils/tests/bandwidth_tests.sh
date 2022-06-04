@@ -2,6 +2,8 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/environment.src
 
+[ -z "$numServerCores" ] && echo "global server cores set in config.src" && exit
+[ -z "$numCores" ] && echo "global client cores not set in config.src" && exit
 [ ! -z "$fSize" ] && echo "Cannot vaary filesize" && exit
 
 export prepend="${band_test_name}"
@@ -14,10 +16,11 @@ outfile=$outdir/bandwidth_comp_$(date +%T).csv
 
 echo -n "" > $outfile
 
+echo "${numServerCores}_ServerCores_${numCores}_ClientCores" >> $outfile
 echo "File Size,$(echo ${file_sizes[*]} | sed -e 's/ /,/g'  )" >> $outfile
 for i in "${methods[@]}"; do
 	row=$i
-	band=( "$i" )
+	band=( )
 	for f in "${file_sizes[@]}" 
 	do
 		export fSize=$f

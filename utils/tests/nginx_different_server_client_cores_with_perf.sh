@@ -16,7 +16,7 @@ declare -a numCliCores=( "10" )
 declare -a serverCoreList=( "10" )
 declare -a fSizes=( "4K" "16K" )
 
-export outdir=${WRK_ROOT}/csv_res/multi_cli_core_multi_serv_core
+export outdir=${WRK_ROOT}/csv_res/multi_cli_core_multi_serv_core_updated_naming
 echo $outdir
 [ ! -d $outdir ] && mkdir -p $outdir
 #rm -rf $outdir/*

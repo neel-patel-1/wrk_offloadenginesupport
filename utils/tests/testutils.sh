@@ -12,18 +12,21 @@ kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_spec.sh 2>1 1>/dev/null
 }
 
+# take "method" "band_file" and "fSize" and write bandwidth achieved to "band_file"
 start_band(){
-	[ -z "$method" ] && echo "no method selected" && exit
+	[ -z "$method" ] && [ -z "$1" ] && echo "no method selected" && exit
+	[ -z "$method" ] && method=$1
 	[ -z "$duration" ] && echo "no duration selected" && exit
 	[ -z "$numServerCores" ] && echo "no server cores selected" && exit
 	[ -z "$numCores" ] && echo "no client cores selected" && exit
-	[ -z "$band_file" ] && echo "no bandwidth output file specified" && exit
+	[ -z "$band_file" ] && [ -z "$1" ] && echo "no bandwidth output file specified" && exit
+	[ -z "$band_file" ] && band_file=$2
 	[ -z "$outdir" ] && echo "no output directory specified" && exit
 	[ -z "$write_time" ] && export write_time=2
+	[ -z "$band_dir" ] && echo "${FUNCNAME[0]}: missing output directory" && exit
 	[ ! -d "$outdir" ] && mkdir -p $outdir
 
-	#echo server:$numServerCores
-	#echo client:$numCores
+	>&2 echo "${FUNCNAME[0]}: starting bandwidth measurement for $method using ($numCores cores x $core_conn connections)"
 	2>/dev/null ${band_dir}/maximum_${method}_throughput.sh | tee $band_file &
 }
 
@@ -61,12 +64,41 @@ two_var_app(){ #files should be labeled x_y where x is the horizontal label and 
 	done
 }
 
+# given a "perf_file" and "p_event" (and optional param "search_name" for events whose name differs in perf), extract the event from the file and print it
+single_perf_event_single_file(){
+	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params"
+	perf_file=$1
+	p_event=$2
+	[ ! -z "$3" ] && p_event=$3
+	>&2 echo "${FUNCNAME[0]}: extracting $2 (psuedonym:$3) from $1"
+	stat=$(grep $pseudo $perf_file |\
+		grep -v "Add" |\ 
+		sed -e"s/,//g" -e "s/${p_event}.*//g" -e "s/\s\s*//g" |\
+	      	awk 'BEGIN{sum=0} {sum+=$1} END{print sum}')
+	echo $stat
+}
+
+# given a set of "perf_files" and a "p_event", extract the event from the files in order and 
+# create an array containing the stats
+perf_row_single_event_mult_files(){
+	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params"
+	perf_files=$1
+	p_events=$2
+	row=()
+	for i in "${perf_files[@]}"; do	
+		row+=( "$(single_perf_event_single_file $1 $2)" )
+	done
+	echo "${row[*]}" | sed -e 's/ /,/g' >> $outfile
+}
+
+
 perf_events_row(){
 	# measure perf_events for a specific number of clients and servers
 	[ -z "$outdir" ] && echo "no output directory specified" && exit
 	[ -z "$outfile" ] && echo "no outfile specified" && exit
 	[ ! -f "$outfile" ] && echo -n "" > $outfile
 	[ -z "$p_events" ] && echo "no perf events" && exit
+	[ -z "${duration}" ] && echo "no duration specified" && exit
 	[ -z "$perf_file" ] && perf_file=$outdir/${numServerCores}_${numCores}_perf
 	#need separate table for each perf_event
 	badname=0 #badname counter
@@ -87,7 +119,7 @@ perf_events_row(){
 			badname=$(( $badname + 1 ))
 		fi
 	done
-	echo "${method},${band}$(echo "${points[*]}" | sed -e 's/ /,/g' | sed -e 's/[A-Za-z]*,/,/g' -e 's/[A-Za-z][A-Za-z]*([0-9][0-9]\.[0-9]*%),/,/g' )" >> $outfile
+	echo "${method},${duration},${band}$(echo "${points[*]}" | sed -e 's/ /,/g' | sed -e 's/[A-Za-z]*,/,/g' -e 's/[A-Za-z][A-Za-z]*([0-9][0-9]\.[0-9]*%),/,/g' )" >> $outfile
 }
 
 two_var_perf(){

@@ -5,7 +5,7 @@ source $WRK_ROOT/vars/environment.src
 
 [ ! -z "$numServerCores" ] && echo "global server cores set in config.src -- cannot vary cores for testing" && exit
 [ ! -z "$numCores" ] && echo "global client cores set in config.src -- cannot vary cores for testing" && exit
-[ ! -z "$numCores" ] && echo "global duration in config.src -- cannot control duration for testing" && exit
+[ ! -z "$duration" ] && echo "global duration in config.src -- cannot control duration for testing" && exit
 
 #get perf sleep test func
 source ${test_dir}/testutils.sh
