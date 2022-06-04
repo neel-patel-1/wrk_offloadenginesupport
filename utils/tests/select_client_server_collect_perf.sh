@@ -47,7 +47,7 @@ for method in "${methods[@]}"; do
 done
 
 export outfile=$outdir/nginx_all_perf_bands.csv
-echo "${numServerCores}_servers_${numCores}_clients_${core_conn}_connections_${fSize},bandwidth(GBit/s),$(echo "${p_events[*]}" | sed 's/ /,/g' )" >> $outfile
+echo "${numServerCores}_servers_${numCores}_clients_${core_conn}_connections_${fSize},bandwidth(GBit/s),duration,$(echo "${p_events[*]}" | sed 's/ /,/g' )" >> $outfile
 for i in "${meth_files[@]}"; do
 	cat ${i} >> $outfile
 	cat ${i}

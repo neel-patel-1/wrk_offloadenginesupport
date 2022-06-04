@@ -12,9 +12,9 @@ source $WRK_ROOT/vars/environment.src
 source ${test_dir}/testutils.sh
 
 #specify output dir
-declare -a numCliCores=( "10" )
-declare -a serverCoreList=( "10" )
-declare -a fSizes=( "4K" "16K" )
+declare -a numCliCores=( "10" "20" "40" )
+declare -a serverCoreList=( "10" "20" "40" )
+declare -a fSizes=( "4K" "16K" "64K" "128K" "256K" )
 
 export outdir=${WRK_ROOT}/csv_res/multi_cli_core_multi_serv_core_updated_naming
 echo $outdir
@@ -42,7 +42,7 @@ done
 export outfile=$outdir/all_cli_serv_cores_with_perfs_and_bands.csv
 echo -n "" > $outfile
 cd $outdir
-for i in $(ls -1 | sort -n -k1 -k3 -k5 -t_); do cat ${i}/nginx_all_perf_bands.csv ; done > $outfile
+for i in $(ls -1 | sort -n -k1 -k3 -k5 -t_); do cat ${i}/nginx_all_perf_bands.csv | awk '!x[$0]++' ; done > $outfile
 cat $outfile
 echo "outfile in $outfile"
 
