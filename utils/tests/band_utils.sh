@@ -8,6 +8,7 @@ source ${test_dir}/core_utils.sh
 
 <<start_band
 	params: 1:method 2:duration 3:output_file 4:num_client_cores 5:connections_per_client_core
+	optional params 6: extra wrk flags
 	Note: Runs in background and writes to output file after duration
 start_band
 start_band(){

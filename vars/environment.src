@@ -37,6 +37,10 @@ export spec_utils=$WRK_ROOT/utils/benchspec
 #remote ocperf
 export remote_ocperf=${remote_root}/pmu-tools/ocperf
 
+#p4 tna switch
+export tna_host=root@192.168.254.254
+export tna_sde=/usr/system/src/bf-sde-9.4.0
+
 
 export csv_export=/home/n869p538/csv_export #copy results here
 
