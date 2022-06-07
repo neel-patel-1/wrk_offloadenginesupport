@@ -102,7 +102,11 @@ perf_events_row(){
 	[ -z "$perf_file" ] && perf_file=$outdir/${numServerCores}_${numCores}_perf
 	#need separate table for each perf_event
 	badname=0 #badname counter
-	band=( "$(cat $outdir/${numServerCores}_${numCores}_band | grep -Eo '[0-9.][0-9.]*')" )
+	if [ -z "$band_file" ]; then
+		band=( "$(cat $outdir/${numServerCores}_${numCores}_band | grep -Eo '[0-9.][0-9.]*')" )
+	else
+		band=( "$(cat $band_file | grep -Eo '[0-9.][0-9.]*')" )
+	fi
 	points=( "$method" )
 	for p in "${p_events[@]}"; do
 		>&2 echo "processing event: $p for method: $method"
@@ -120,6 +124,77 @@ perf_events_row(){
 		fi
 	done
 	echo "${method},${duration},${band}$(echo "${points[*]}" | sed -e 's/ /,/g' | sed -e 's/[A-Za-z]*,/,/g' -e 's/[A-Za-z][A-Za-z]*([0-9][0-9]\.[0-9]*%),/,/g' )" >> $outfile
+}
+
+qtls_small_perf_events_row(){
+	# measure perf_events for a specific number of clients and servers
+	[ -z "$outdir" ] && echo "no output directory specified" && exit
+	[ -z "$outfile" ] && echo "no outfile specified" && exit
+	[ ! -f "$outfile" ] && echo -n "" > $outfile
+	[ -z "$p_events" ] && echo "no perf events" && exit
+	[ -z "${duration}" ] && echo "no duration specified" && exit
+	[ -z "${fSize}" ] && echo "no file size specified" && exit
+	[ -z "$perf_file" ] && perf_file=$outdir/${numServerCores}_${numCores}_perf
+	#need separate table for each perf_event
+	badname=0 #badname counter
+	if [ -z "$band_file" ]; then
+		band=( "$(cat $outdir/${numServerCores}_${numCores}_band | grep -Eo '[0-9.][0-9.]*')" )
+	else
+		band=( "$(cat $band_file | grep -Eo '[0-9.][0-9.]*')" )
+	fi
+	points=( "$method" )
+	for p in "${p_events[@]}"; do
+		>&2 echo "processing event: $p for method: $method"
+		if [ ! -z "$(grep $p $perf_file )" ]; then #grep for the perf event
+			points+=( "$(grep $p $perf_file | grep -v "Add" | sed -e"s/,//g" -e "s/$p//g" -e "s/\s\s*//g" )" ) #could find event in file
+		else #need user to tell us the name
+			pseudo="${name_mismatch[ $badname ]}"
+			np=$(grep $pseudo $perf_file |\
+				grep -v "Add" | tee $outdir/after_add.txt |\
+				sed -e"s/,//g" -e "s/${pseudo}.*//g" \
+				-e "s/\s\s*//g" |  tee $outdir/rem_name.txt | awk 'BEGIN{sum=0} {sum+=$1} END{print sum}' |\
+				tee $outdir/after_sum.txt )
+			points+=( "$np" )
+			badname=$(( $badname + 1 ))
+		fi
+	done
+	echo "${method},${duration},${fSize},$(( $core_conn * $numCores )),${band}$(echo "${points[*]}" | sed -e 's/ /,/g' | sed -e 's/[A-Za-z]*,/,/g' -e 's/[A-Za-z][A-Za-z]*([0-9][0-9]\.[0-9]*%),/,/g' )" >> $outfile
+}
+
+drop_perf_events_row(){
+	# measure perf_events for a specific number of clients and servers
+	[ -z "$outdir" ] && echo "no output directory specified" && exit
+	[ -z "$outfile" ] && echo "no outfile specified" && exit
+	[ ! -f "$outfile" ] && echo -n "" > $outfile
+	[ -z "$p_events" ] && echo "no perf events" && exit
+	[ -z "${duration}" ] && echo "no duration specified" && exit
+	[ -z "${fSize}" ] && echo "no file size specified" && exit
+	[ -z "$perf_file" ] && perf_file=$outdir/${numServerCores}_${numCores}_perf
+	[ -z "$drop_rate" ] && echo "no drop rate specified" && exit
+	#need separate table for each perf_event
+	badname=0 #badname counter
+	if [ -z "$band_file" ]; then
+		band=( "$(cat $outdir/${numServerCores}_${numCores}_band | grep -Eo '[0-9.][0-9.]*')" )
+	else
+		band=( "$(cat $band_file | grep -Eo '[0-9.][0-9.]*')" )
+	fi
+	points=( "$method" )
+	for p in "${p_events[@]}"; do
+		>&2 echo "processing event: $p for method: $method"
+		if [ ! -z "$(grep $p $perf_file )" ]; then #grep for the perf event
+			points+=( "$(grep $p $perf_file | grep -v "Add" | sed -e"s/,//g" -e "s/$p//g" -e "s/\s\s*//g" )" ) #could find event in file
+		else #need user to tell us the name
+			pseudo="${name_mismatch[ $badname ]}"
+			np=$(grep $pseudo $perf_file |\
+				grep -v "Add" | tee $outdir/after_add.txt |\
+				sed -e"s/,//g" -e "s/${pseudo}.*//g" \
+				-e "s/\s\s*//g" |  tee $outdir/rem_name.txt | awk 'BEGIN{sum=0} {sum+=$1} END{print sum}' |\
+				tee $outdir/after_sum.txt )
+			points+=( "$np" )
+			badname=$(( $badname + 1 ))
+		fi
+	done
+	echo "${method},${duration},${fSize},${drop_rate},${band}$(echo "${points[*]}" | sed -e 's/ /,/g' | sed -e 's/[A-Za-z]*,/,/g' -e 's/[A-Za-z][A-Za-z]*([0-9][0-9]\.[0-9]*%),/,/g' )" >> $outfile
 }
 
 two_var_perf(){

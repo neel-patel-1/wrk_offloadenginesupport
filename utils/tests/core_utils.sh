@@ -37,3 +37,15 @@ qtls_core(){
 	echo "taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2} -e qatengine -d${3} ${7} https://${4}:${5}/${6}"
 	taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2} -e qatengine -d${3} ${7} https://${4}:${5}/${6}
 }
+
+#start a method and capture 
+capture_core(){
+	method=${1}
+	${method}_core
+}
+
+#start a quick test
+quick_test(){
+	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
+	capture_core http 1 64 10 192.168.2.2 80 file_256K
+}

@@ -10,11 +10,16 @@ single_perf_event_single_file(){
 	p_event=$2
 	[ ! -z "$3" ] && p_event=$3
 	>&2 echo "${FUNCNAME[0]}: extracting $2 (psuedonym:$3) from $1"
-	stat=$(grep $pseudo $perf_file |\
-		grep -v "Add" |\ 
-		sed -e"s/,//g" -e "s/${p_event}.*//g" -e "s/\s\s*//g" |\
-	      	awk 'BEGIN{sum=0} {sum+=$1} END{print sum}')
-	echo $stat
+	point=$(grep $p_event $perf_file | grep -v "Add" | awk '{print $1}' | sed -e"s/,//g" -e "s/$p_event//g" -e "s/\s\s*//g" )
+	for p in "${point[@]}"; do
+		echo $p
+	done
+}
+
+#given a (1)name and a (2)perf_file, search the file for names matching the event (as output names may differ from event specified)
+find_event_in_file(){
+	[ -z "$2" ] && echo "${FUNCNAME[0]}: event not found"
+	grep $1 $2
 }
 
 # given a set of "perf_files" and a "p_event", extract the event from the files in order and 
