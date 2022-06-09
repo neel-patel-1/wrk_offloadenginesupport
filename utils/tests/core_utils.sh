@@ -38,14 +38,25 @@ qtls_core(){
 	taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2} -e qatengine -d${3} ${7} https://${4}:${5}/${6}
 }
 
-#start a method and capture 
-capture_core(){
+ktls_core(){
+	export LD_LIBRARY_PATH=$KTLS_OSSL_LIBS
+	taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+}
+
+# PARAMS: 0-method 1-core (to pin clients) 2-clients (ie. 64 clients on a single core) 3-duration 4-remote_ip 5-port 6-file_path (starts at root)
+capture_core_async(){
 	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
-	${1}_core $2 $3 $4 $5 $6 $7
+	${1}_core $2 $3 $4 $5 $6 $7 > $8 &
+}
+
+# PARAMS: 0-method 1-core (to pin clients) 2-clients (ie. 64 clients on a single core) 3-duration 4-remote_ip 5-port 6-file_path (starts at root)
+capture_core_block(){
+	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
+	${1}_core $2 $3 $4 $5 $6 $7 > $8
 }
 
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core http 1 64 10 192.168.2.2 80 file_256K
+	capture_core_async ktls 1 64 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
