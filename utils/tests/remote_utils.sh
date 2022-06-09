@@ -4,6 +4,9 @@ source $WRK_ROOT/vars/environment.src
 
 ## SWITCH UTILS ##
 
+ports_up(){
+	ssh ${tna_host} "${tna_sde}/run_bfshell.sh -f ${tna_sde}/myPrograms/port_setup.bfsh"
+}
 start_default_switch(){
 	#TODO allow running on any tfa switch with an sde installation
 	ssh ${tna_host} "${tna_sde}/run_bfshell.sh -f ${tna_sde}/myPrograms/port_setup.bfsh"

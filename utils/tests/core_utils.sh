@@ -40,8 +40,8 @@ qtls_core(){
 
 #start a method and capture 
 capture_core(){
-	method=${1}
-	${method}_core
+	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
+	${1}_core $2 $3 $4 $5 $6 $7
 }
 
 #start a quick test
