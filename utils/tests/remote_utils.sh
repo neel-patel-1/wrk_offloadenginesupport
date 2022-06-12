@@ -85,5 +85,5 @@ remote_file(){
 # 1 - method to pass to remote nginx
 # 2 - num server cores
 start_remote_nginx(){
-	ssh ${remote_host} $remote_nginx_start $1 $2 > /dev/null
+	ssh ${remote_host} $remote_nginx_start $1 $2 2>/dev/null
 }

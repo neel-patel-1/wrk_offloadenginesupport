@@ -34,7 +34,7 @@ ipc_test(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	ipc_dir=${res_dir}/ipc_res
 	[ ! -d "$ipc_dir" ] && mkdir -p $ipc_dir
-	raw_perfs=${ipc_dir}/raw_perfs
+	raw_perfs=${ipc_dir}/perfs
 	[ ! -d "$raw_perfs" ] && mkdir -p $raw_perfs
 	raw_bands=${ipc_dir}/raw_bands
 	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands

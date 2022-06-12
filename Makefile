@@ -28,7 +28,7 @@ OBJ  := $(patsubst %.c,$(ODIR)/%.o,$(SRC)) $(ODIR)/bytecode.o $(ODIR)/version.o
 LIBS := -lluajit-5.1 $(LIBS)
 
 DEPS    :=
-CFLAGS  += -I$(ODIR)/include
+CFLAGS  += -I$(ODIR)/include -I$(WITH_OPENSSL)/include
 LDFLAGS += -L$(ODIR)/lib
 
 ifneq ($(WITH_LUAJIT),)
@@ -41,7 +41,7 @@ endif
 
 ifneq ($(WITH_OPENSSL),)
 	CFLAGS  += -I$(WITH_OPENSSL)/include
-	LDFLAGS += -L$(WITH_OPENSSL)/lib
+	LDFLAGS += -L$(WITH_OPENSSL) #-l:$(WITH_OPENSSL)/libssl.so.3 -l:$(WITH_OPENSSL)/libcrypto.so.3
 else
 	DEPS += $(ODIR)/lib/libssl.a
 endif

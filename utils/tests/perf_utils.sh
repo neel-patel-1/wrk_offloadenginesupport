@@ -32,7 +32,6 @@ perf_outdir_timespec(){
 	[ -z "${4}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	source ${WRK_ROOT}/vars/configs.src
 	local -n time_evs=$4
-	events="${@:4}"
 	perfmon_sys ${remote_host} ${remote_ocperf} $1 $3 time_evs
 	debug "${FUNCNAME[0]} Moving events (${time_evs[*]}) to directory ($2)"
 	[ ! -d "$2" ] && mkdir $2
@@ -56,10 +55,11 @@ multi_enc_perf(){
 		wait_time=$(( duration / 6 ))
 		perf_time=$(( duration -  duration / 6 ))
 		debug "${FUNCNAME[0]}: starting $i nginx server..."
+		[ ! -d "$7/${i}_perf" ] && mkdir $7/${i}_perf && debug "${FUNCNAME[0]}: making perf output directory for $i"
 		capture_cores_async $i $4 $3 ${remote_ip} ${port} $6 _multi_cores
 		debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
 		sleep $wait_time
 		debug "${FUNCNAME[0]}: starting perf capture (${_multi_evs[*]}) ..."
-		perf_outdir_timespec ${perf_time} $7 $raw_perfs/${i}_raw_perf _multi_evs
+		perf_outdir_timespec ${perf_time} $7/${i}_perf $7/${i}_raw_perf _multi_evs
 	done
 }
