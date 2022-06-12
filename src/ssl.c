@@ -20,6 +20,7 @@ SSL_CTX *ssl_init() {
         SSL_CTX_set_verify_depth(ctx, 0);
         SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
         SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
+	SSL_CTX_set_options(ctx, SSL_OP_ENABLE_KTLS);
     }
 
     return ctx;
@@ -72,6 +73,7 @@ status ssl_connect(connection *c, char *host) {
             default:                   return ERROR;
         }
     }
+    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     return OK;
 }
 
@@ -83,6 +85,7 @@ status ssl_close(connection *c) {
 
 status ssl_read(connection *c, size_t *n) {
     int r;
+    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     if ((r = SSL_read(c->ssl, c->buf, sizeof(c->buf))) <= 0) {
         switch (SSL_get_error(c->ssl, r)) {
             case SSL_ERROR_WANT_READ:  return RETRY;
@@ -96,6 +99,7 @@ status ssl_read(connection *c, size_t *n) {
 
 status ssl_write(connection *c, char *buf, size_t len, size_t *n) {
     int r;
+    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     if ((r = SSL_write(c->ssl, buf, len)) <= 0) {
         switch (SSL_get_error(c->ssl, r)) {
             case SSL_ERROR_WANT_READ:  return RETRY;
@@ -108,5 +112,6 @@ status ssl_write(connection *c, char *buf, size_t len, size_t *n) {
 }
 
 size_t ssl_readable(connection *c) {
+    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     return SSL_pending(c->ssl);
 }

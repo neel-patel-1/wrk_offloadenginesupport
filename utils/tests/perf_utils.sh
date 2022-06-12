@@ -1,8 +1,10 @@
 #!/bin/bash
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
-source $WRK_ROOT/vars/environment.src
+source $WRK_ROOT/vars/env.src
 
 source ${test_dir}/parse_utils.sh
+source ${test_dir}/core_utils.sh
+source ${test_dir}/remote_utils.sh
 
 #### PERF UTILS ###
 
@@ -15,30 +17,49 @@ perf_enable(){
 # params: 5:end-variable length list of events to monitor 3-duration 4-outfile 1-remote host and 2-ocperf (1 and 2 should be specified in configuration file)
 perfmon_sys(){
 	[ -z "${4}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	#[ ! -f "$4" ] && echo -n "" > $4
 	perf_enable
 	p_com="stat "
-	[ ! -z "${5}" ] && p_com+="-e $(echo ${@:5} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
+	local -n sys_evs=$5
+	[ ! -z "${5}" ] && p_com+="-e $(echo ${sys_evs[*]} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
+	debug "${FUNCNAME[0]} Monitoring ${sys_evs[*]}"
 	ssh ${1} "${2} ${p_com} sleep $3" 2>$4 1>/dev/null
 }
 
-
-#Start a quick test using variables specified in config file
-#Fails if any variables are unset
-quick_perf(){
-	source ${WRK_ROOT}/vars/configs.src
-	#events=( "instructions" "LLC-load-misses" "LLC-load-misses" )
-	events=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
-	perfmon_sys ${remote_host} ${remote_ocperf} 5 test_perf.txt "${events[*]}"
-	mkdir $(pwd)/test_dir
-	file_to_dir test_perf.txt $(pwd)/test_dir "${events[@]}"
-}
-
-#params: 1-duration 2-outdir 3-perf_filename 3:end-events
+#params: 1-duration 2-outdir 3-perf_filename 4:end-events
 #Fails if any variables are unset
 perf_outdir_timespec(){
+	[ -z "${4}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	source ${WRK_ROOT}/vars/configs.src
-	events="${@:3}"
-	perfmon_sys ${remote_host} ${remote_ocperf} $1 $2 "${events[*]}"
+	local -n time_evs=$4
+	events="${@:4}"
+	perfmon_sys ${remote_host} ${remote_ocperf} $1 $3 time_evs
+	debug "${FUNCNAME[0]} Moving events (${time_evs[*]}) to directory ($2)"
 	[ ! -d "$2" ] && mkdir $2
-	file_to_dir test_perf.txt $(pwd)/test_dir "${events[@]}"
+	file_to_dir $3 $2 time_evs
+}
+
+#params: 1- method array 2-events to test 3-duration 4-clients per core   5-server core list 6-wrk output dump dir  7-perf output dump dir
+multi_enc_perf(){
+	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	local -n _multi_methods=$1
+	local -n _multi_evs=$2
+	local -n _multi_cores=$5
+	#start remote nginx
+	for i in "${_multi_methods[@]}"; do
+		start_remote_nginx $i $(echo -n "${_multi_cores[*]}" | wc -c )
+		if [ "$i" = "http" ]; then
+			port=80
+		else
+			port=443
+		fi
+		wait_time=$(( duration / 6 ))
+		perf_time=$(( duration -  duration / 6 ))
+		debug "${FUNCNAME[0]}: starting $i nginx server..."
+		capture_cores_async $i $4 $3 ${remote_ip} ${port} $6 _multi_cores
+		debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
+		sleep $wait_time
+		debug "${FUNCNAME[0]}: starting perf capture (${_multi_evs[*]}) ..."
+		perf_outdir_timespec ${perf_time} $7 $raw_perfs/${i}_raw_perf _multi_evs
+	done
 }

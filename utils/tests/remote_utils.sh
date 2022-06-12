@@ -75,4 +75,15 @@ rebuild_l2(){
 }
 
 
-## remote nginx utils ##
+# 1 - size of file to check for in nginx root dirs
+# 2 - remote host
+# 3 - remote nginx_script directory
+remote_file(){
+	ssh ${2} "${3} ${1}"
+}
+
+# 1 - method to pass to remote nginx
+# 2 - num server cores
+start_remote_nginx(){
+	ssh ${remote_host} $remote_nginx_start $1 $2 > /dev/null
+}

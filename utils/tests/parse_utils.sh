@@ -1,7 +1,6 @@
 #!/bin/bash
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
-source $WRK_ROOT/vars/environment.src
-
+source $WRK_ROOT/vars/env.src
 
 # given a "perf_file" and "p_event" (and optional param "search_name" for events whose name differs in perf), extract the event from the file and print it
 single_perf_event_single_file(){
@@ -19,16 +18,21 @@ single_perf_event_single_file(){
 # params: 1-input file, 2-output directory 3:end-events
 file_to_dir(){
 	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params"
-	
-	for i in "${@:3}"; do
+	local -n _f_eves=$3
+	for i in "${_f_eves[@]}"; do
 		stat=$(single_perf_event_single_file $1 $i)
-		p_num=$(ls -1 $2/$i* | sort -n | tail -n 1 | grep -Eo '_[0-9]+' | grep -Eo '[0-9]+')
-		echo "last p_file: $p_num"
-		p_file=$2/${i}_$((p_num + 1))
-		if [ -f "${p_file}" ]; then 
-			echo "${FUNCNAME[0]}:Error creating file: $p_file"
+		p_num=$( ls -1 $2/$i* 2>/dev/null | sort -V | tail -n 1 | grep -Eo '_[0-9]+' | grep -Eo '[0-9]+')
+		if [ -z "$p_num" ]; then
+			>&2 echo "creating new p_file: $i"
+			p_file=$2/${i}_0
+		else
+			>&2 echo "${FUNCNAME[0]}:last p_file: $p_num"
+			p_file=$2/${i}_$((p_num + 1))
 		fi
-		echo $stat > $p_file
+		if [ -f "${p_file}" ]; then 
+			echo "${FUNCNAME[0]}:Error creating file: $p_file" && return -1
+		fi
+		echo "$stat" > $p_file
 	done
 }
 
@@ -50,3 +54,18 @@ perf_row_single_event_mult_files(){
 	done
 	echo "${row[*]}" | sed -e 's/ /,/g' >> $outfile
 }
+
+# given a bandwidth directory, check each file in the directory and sum the bandwidths and
+# get average latencies
+# 1- directory 2- outfile
+parse_band_dir(){
+	[ ! -d "$2" ] && echo "${FUNCNAME[0]}: missing params" && return -1
+	for i in $1/*; do
+		band=$(cat $i | sed -E -n -e 's/Transfer\/sec:\s*([0-9]*.[0-9]*)(MB|GB|B|KB)/\1 \2/p' <&0)
+		echo $band >> $2
+	done
+	>&2 cat $2
+}
+
+# given for 
+
