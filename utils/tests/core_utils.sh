@@ -52,6 +52,7 @@ qtlsdbg_core(){
 ktls_core(){
 	export LD_LIBRARY_PATH=$KTLS_OSSL_LIBS
 	debug "${FUNCNAME[0]}: taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
+	debug "${FUNCNAME[0]}: libs -> $(ldd ${WRK_ROOT}/wrk)"
 	taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }
 

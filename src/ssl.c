@@ -64,6 +64,14 @@ SSL_CTX *ssl_offload_init(char * engine_str) {
 
 status ssl_connect(connection *c, char *host) {
     int r;
+    /* OSSL_3 compatibility */
+    /*
+    if(c->connected)
+	    return ERROR;
+    else
+	    c->connected=true;
+	    */
+
     SSL_set_fd(c->ssl, c->fd);
     SSL_set_tlsext_host_name(c->ssl, host);
     if ((r = SSL_connect(c->ssl)) != 1) {
@@ -73,7 +81,6 @@ status ssl_connect(connection *c, char *host) {
             default:                   return ERROR;
         }
     }
-    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     return OK;
 }
 
@@ -85,7 +92,6 @@ status ssl_close(connection *c) {
 
 status ssl_read(connection *c, size_t *n) {
     int r;
-    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     if ((r = SSL_read(c->ssl, c->buf, sizeof(c->buf))) <= 0) {
         switch (SSL_get_error(c->ssl, r)) {
             case SSL_ERROR_WANT_READ:  return RETRY;
@@ -99,7 +105,6 @@ status ssl_read(connection *c, size_t *n) {
 
 status ssl_write(connection *c, char *buf, size_t len, size_t *n) {
     int r;
-    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     if ((r = SSL_write(c->ssl, buf, len)) <= 0) {
         switch (SSL_get_error(c->ssl, r)) {
             case SSL_ERROR_WANT_READ:  return RETRY;
@@ -112,6 +117,5 @@ status ssl_write(connection *c, char *buf, size_t len, size_t *n) {
 }
 
 size_t ssl_readable(connection *c) {
-    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
     return SSL_pending(c->ssl);
 }

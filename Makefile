@@ -1,4 +1,4 @@
-CFLAGS  += -std=c99 -Wall -O2 -D_REENTRANT
+CFLAGS  += -std=c99 -Wall -O0 -D_REENTRANT -g
 LIBS    := -lm -lssl -lcrypto -lpthread
 
 TARGET  := $(shell uname -s | tr '[A-Z]' '[a-z]' 2>/dev/null || echo unknown)

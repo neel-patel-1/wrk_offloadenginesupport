@@ -15,7 +15,7 @@ export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core_block ktls 1 64 5 192.168.2.2 443 file_256K.txt ktls_band.txt
+	capture_core_block ktlsdbg 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
 
 #Start a quick test using variables specified in config file
