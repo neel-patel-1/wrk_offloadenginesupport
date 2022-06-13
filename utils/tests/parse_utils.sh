@@ -8,7 +8,7 @@ single_perf_event_single_file(){
 	perf_file=$1
 	p_event=$2
 	[ ! -z "$3" ] && p_event=$3
-	>&2 echo "${FUNCNAME[0]}: extracting $2 from $1"
+	debug "${FUNCNAME[0]}: extracting $2 from $1"
 	point=$(grep $p_event $perf_file | grep -v "Add" | awk '{print $1}' | sed -e"s/,//g" -e "s/$p_event//g" -e "s/\s\s*//g" | awk 'BEGIN{sum=0} {sum+=$1} END{print sum}' )
 	for p in "${point[@]}"; do
 		echo $p
@@ -23,10 +23,10 @@ file_to_dir(){
 		stat=$(single_perf_event_single_file $1 $i)
 		p_num=$( ls -1 $2/$i* 2>/dev/null | sort -V | tail -n 1 | grep -Eo '_[0-9]+' | grep -Eo '[0-9]+')
 		if [ -z "$p_num" ]; then
-			>&2 echo "creating new p_file: $i"
+			debug "creating new p_file: $i"
 			p_file=$2/${i}_0
 		else
-			>&2 echo "${FUNCNAME[0]}:last p_file: $p_num"
+			debug "${FUNCNAME[0]}:last p_file: $p_num"
 			p_file=$2/${i}_$((p_num + 1))
 		fi
 		if [ -f "${p_file}" ]; then 
@@ -66,6 +66,3 @@ parse_band_dir(){
 	done
 	>&2 cat $2
 }
-
-# given for 
-
