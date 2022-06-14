@@ -5,7 +5,7 @@ declare -a file_sizes=( "4K" "16K" "64K" "128K" "256K" )
 #declare -a file_sizes=( "1M" "2M" )
 
 #client configurations -- method options include ( "axdimm" "qtls" "http" "https" "ktls" )
-declare -a methods=( "https" "qtls" )
+declare -a methods=( "ktls" "https" "qtls" )
 export duration=10
 export fSize=256K
 export numCores=10

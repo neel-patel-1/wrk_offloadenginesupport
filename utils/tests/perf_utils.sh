@@ -38,7 +38,7 @@ perf_outdir_timespec(){
 	file_to_dir $3 $2 time_evs
 }
 
-#params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir  8-perf output dump dir
+#params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir  8-perf output dump dir 9- optional perf data point dir(default makes subdir in raw output folder
 multi_enc_perf(){
 	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	local -n _multi_methods=$1
@@ -61,6 +61,12 @@ multi_enc_perf(){
 		debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
 		sleep $wait_time
 		debug "${FUNCNAME[0]}: starting perf capture (${_multi_evs[*]}) ..."
-		perf_outdir_timespec ${perf_time} $8/${_meth}_perf $8/${_meth}_raw_perf _multi_evs
+		# want data point directory to have separate hierarchy
+		if [ -z "${9}" ]; then
+			perf_outdir_timespec ${perf_time} $8/${_meth}_perf $8/${_meth}_raw_perf _multi_evs
+		else
+			perf_outdir_timespec ${perf_time} $9/${_meth}_perf $8/${_meth}_raw_perf _multi_evs
+		fi
+
 	done
 }

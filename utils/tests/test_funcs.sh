@@ -5,17 +5,18 @@ source ${test_dir}/core_utils.sh
 source ${test_dir}/perf_utils.sh
 source ${test_dir}/plot_utils.sh
 source ${test_dir}/debug_utils.sh
+source ${test_dir}/remote_utils.sh
 
 export res_dir=${WRK_ROOT}/results
 
 export enc=( "https" "http" )
-export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" "cycles" )
+export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
 export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core_block ktlsdbg 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
+	capture_core_block ktlsdrop 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
 
 #Start a quick test using variables specified in config file
@@ -37,9 +38,11 @@ ipc_test(){
 	[ ! -d "$ipc_dir" ] && mkdir -p $ipc_dir
 	raw_perfs=${ipc_dir}/perfs
 	[ ! -d "$raw_perfs" ] && mkdir -p $raw_perfs
-	raw_bands=${ipc_dir}/raw_bands
+	bands=${ipc_dir}/bands
+	[ ! -d "$bands" ] && mkdir -p $raw_bands
+	raw_bands=${bands}/raw_bands
 	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands
-	#multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $raw_bands $raw_perfs
+	multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $raw_bands $raw_perfs
 	num_meths=$( echo "${enc[*]}" | wc -w )
 	ipc_dirs=0
 	ipc_dirs=( $( ls $raw_perfs --group-directories-first | tr ' ' '\n' | head -n $num_meths | tr ' ' '\n' | awk "{printf(\"${raw_perfs}/%s \",\$0);}" ))
@@ -47,6 +50,35 @@ ipc_test(){
 	dir_to_datfrag ipc_dirs ev
 	#plot average stats from different directories
 }
+
+# call multi_enc_perf with all the methods to compare against
+# make a separate dir for each drop rate
+# 1- duration
+ktls_drop_test(){
+	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	d_rates=( "0.01" "0.01" "0.02" "0.05" )
+	ktls_drop_dir=${res_dir}/ktls_drop_res
+	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
+	raw_perfs=${ktls_drop_dir}/perfs
+	[ ! -d "$raw_perfs" ] && mkdir -p $raw_perfs
+	bands=${ktls_drop_dir}/bands
+	[ ! -d "$bands" ] && mkdir -p $bands
+	raw_bands=${bands}/raw_bands
+	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands
+	rate_dirs=()
+	# separate raw dirs for all rates
+	for _d in "${d_rates[@]}"; do
+		# remote call to tofino switch
+		#rebuild_drop $_d
+		d_r_b=$raw_bands/${_d}_raw_band
+		d_r_p=$raw_perfs/${_d}_raw_perf
+		d_r_cp=$perfs/${_d}_perf
+		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp/${_d}_perf
+	done
+	dir_to_multibar $d_r_cp
+
+}
+
 
 # PARAMS: 1-# of methods 2-list of methods 3-# of files 4-length of files to test
 small_file_test(){

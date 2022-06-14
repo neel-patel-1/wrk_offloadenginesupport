@@ -56,11 +56,11 @@ ktls_core(){
 	taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }
 
-ktlsdbg_core(){
-	export LD_LIBRARY_PATH=$KTLS_OSSL_LIBS
-	ldd ${WRK_ROOT}/wrk
+ktlsdrop_core(){
+	export LD_LIBRARY_PATH=$ktls_drop_ossl
+	debug "$(ldd ${ktls_drop_wrk})"
 	debug "${FUNCNAME[0]}: taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
-	gdb --args ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+	$ktls_drop_wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }
 # PARAMS: 1-method 2-core (to pin clients) 3-clients (ie. 64 clients on a single core) 4-duration 5-remote_ip 6-port 7-file_path (starts at root) 8-output file 9-optional argumetns to wrk
 capture_core_async(){

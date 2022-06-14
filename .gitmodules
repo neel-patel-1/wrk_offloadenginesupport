@@ -1,3 +1,6 @@
 [submodule "async_nginx_build"]
 	path = async_nginx_build
 	url = git@gitlab.ittc.ku.edu:n869p538/async_nginx_build.git
+[submodule "client_wrks/autonomous-asplos21-artifact"]
+	path = client_wrks/autonomous-asplos21-artifact
+	url = https://github.com/BorisPis/autonomous-asplos21-artifact.git
