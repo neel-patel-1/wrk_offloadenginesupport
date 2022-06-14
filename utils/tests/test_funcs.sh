@@ -9,14 +9,14 @@ source ${test_dir}/remote_utils.sh
 
 export res_dir=${WRK_ROOT}/results
 
-export enc=( "https" "ktlsdrop" )
+export enc=( "ktls" "https" "qtls" "axdimm" )
 export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
 export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core_block link 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
+	capture_core_block qtls 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
 
 #Start a quick test using variables specified in config file
@@ -52,34 +52,36 @@ ipc_test(){
 }
 
 # call multi_enc_perf with all the methods to compare against
-# make a separate dir for each drop rate
+# make a separate dir for each drop rate -- current register size is hardcoded in tofino, will investigate how to modify
+# droprate from control plane
 # 1- duration
 ktls_drop_test(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	d_rates=( "0.001" "0.01" "0.02" "0.05" )
 	ktls_drop_dir=${res_dir}/ktls_drop_res
 	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
-	dps=${ktls_drop_dir}/perfs
+	dps=${ktls_drop_dir}/data_points
 	[ ! -d "$dps" ] && mkdir -p $dps
 	raw_perfs=${ktls_drop_dir}/raw_perfs
 	[ ! -d "$raw_perfs" ] && mkdir -p $raw_perfs
 	raw_bands=${ktls_drop_dir}/raw_bands
 	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands
-	rate_dirs=()
 	# separate raw dirs for all rates
 	for _d in "${d_rates[@]}"; do
 		# remote call to tofino switch
-		#rebuild_drop $_d
+		pkts=$(python -c "print (int($_d * 4096))")
+		debug "${FUNCNAME[0]}: Testing Droprate: $_d with $pkts/4096 dropped"
+		rebuild_drop $pkts
 		d_r_b=$raw_bands/${_d}_raw_band
 		[ ! -d "$d_r_b" ] && mkdir -p $d_r_b
 		d_r_p=$raw_perfs/${_d}_raw_perf
 		[ ! -d "$d_r_p" ] && mkdir -p $d_r_p
-		d_r_cp=$dps/${_d}_perf
+		d_r_cp=$dps/${_d}_points
 		[ ! -d "$d_r_cp" ] && mkdir -p $d_r_cp
-		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp $d_r_cp
-		#process bandwidth into currend 
+		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp
 	done
-	dir_to_multibar $d_r_cp
+	#ev+=( "bandwidth" ) # bandwidth is also measured in multi_enc_perf
+	#dir_to_multibar $dps ev test_dir.tst
 
 }
 

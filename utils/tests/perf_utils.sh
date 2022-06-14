@@ -38,8 +38,7 @@ perf_outdir_timespec(){
 	file_to_dir $3 $2 time_evs
 }
 
-#params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir  8-perf output dump dir 9- optional perf data point dir(default makes subdir in raw output folder 10 - optional destination directory for processed bandwidth file
-#kept for compatibility: better implementation below v2
+#params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir(per core)  8-perf output dump dir(method number of files) 9-perf data point dir 
 multi_enc_perf(){
 	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	local -n _multi_methods=$1
@@ -48,37 +47,45 @@ multi_enc_perf(){
 	#start remote nginx
 	debug "${FUNCNAME[0]}: testing encryption methods: ${_multi_methods[*]}"
 	for _meth in "${_multi_methods[@]}"; do
-		start_remote_nginx $_meth $(echo -n "${_multi_cores[*]}" | wc -c )
 		if [ "$_meth" = "http" ]; then
 			port=80
 		else
 			port=443
 		fi
+
 		wait_time=$(( duration / 6 ))
 		perf_time=$(( duration -  duration / 6 ))
+		meth_raw_band=$7/${_meth}_raw_band # raw band dump directory for this method
+		meth_band_list=${meth_raw_band}/band_list # list of bandwidths
+		meth_raw_perf=$8/${_meth}_raw_perf #raw perf file for this method
+		meth_data_points=$9/${_meth}_perf #output directory for processed data points
+		debug "${FUNCNAME[0]}: outputting raw band to ${meth_raw_band} \n list of bands to ${meth_band_list} \n raw perf file to ${meth_raw_perf} \n data points to ${meth_data_points}"
+		
+		start_remote_nginx $_meth $(echo -n "${_multi_cores[*]}" | wc -c )
 		debug "${FUNCNAME[0]}: starting $_meth nginx server..."
-		[ ! -d "$8/${_meth}_perf" ] && mkdir $8/${_meth}_perf && debug "${FUNCNAME[0]}: making perf output directory for $_meth"
-		capture_cores_async $_meth $4 $3 ${remote_ip} ${port} $6 $7 _multi_cores
+
+		[ ! -d "${meth_data_points}" ] && mkdir ${meth_data_points} && debug "${FUNCNAME[0]}: making data point output directory for $_meth (${meth_data_points})"
+		[ ! -d "${meth_raw_band}" ] && mkdir ${meth_raw_band} && debug "${FUNCNAME[0]}: making wrk output directory for $_meth (${meth_raw_band})"
+
+		capture_cores_async $_meth $4 $3 ${remote_ip} ${port} $6 ${meth_raw_band} _multi_cores
 		debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
 		sleep $wait_time
 		debug "${FUNCNAME[0]}: starting perf capture (${_multi_evs[*]}) ..."
-		# want data point directory to have separate hierarchy
-		if [ -z "${9}" ]; then
-			perf_outdir_timespec ${perf_time} $8/${_meth}_perf $8/${_meth}_raw_perf _multi_evs
-		else
-			perf_outdir_timespec ${perf_time} $9/${_meth}_perf $8/${_meth}_raw_perf _multi_evs
-		fi
-		# wait for capture cores to finish writing
-		while [ -z "$(cat $7/core_*)" ];do
+		perf_outdir_timespec ${perf_time} ${meth_data_points} ${meth_raw_perf} _multi_evs
+		# wait for connected capture cores to finish writing (10 seconds)
+		for i in `seq 1 10`; do
 			wa=0 # we done writing
-			for i in $7/core_*; do
-				[ -z "$(cat $7/core_*)" ] \
-					&& wa=1 #not done
+			for i in ${meth_raw_band}/core_*; do
+				[ -z "$(cat $i)" ] \
+					&& wa=1 \
+					&& echo "${FUNCNAME[0]}: waiting on $i wrk output" #not done
 			done
 			[ "$wa" = "0" ] && break
+			sleep 1
 		done
 		# parse captured cores
-		echo "$(parse_band_dir $7 ${8}/${_meth}_band)" > ${10}/bandwidth
+		parse_band_dir ${meth_raw_band} ${meth_raw_band}/${_meth}_band ${meth_raw_band}/${_meth}_summed_band
+		gen_nfile "bandwidth" ${meth_data_points} $( cat ${meth_raw_band}/${_meth}_summed_band )
 
 
 	done

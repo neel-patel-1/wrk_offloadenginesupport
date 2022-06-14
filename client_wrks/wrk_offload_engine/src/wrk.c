@@ -255,7 +255,6 @@ static int connect_socket(thread *thread, connection *c) {
     if (connect(fd, addr->ai_addr, addr->ai_addrlen) == -1) {
         if (errno != EINPROGRESS) goto error;
     }
-    SSL_set_options(c->ssl, SSL_OP_ENABLE_KTLS);
 
     flags = 1;
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags));

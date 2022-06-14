@@ -17,8 +17,7 @@ https_core(){
 	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
-	ldd ${default_wrk}
-	#taskset -c ${1} ${default_wrk} -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+	taskset -c ${1} ${default_wrk} -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }
 
 #offload cores
@@ -49,16 +48,16 @@ qtlsdbg_core(){
 	gdb --args ${WRK_ROOT}/wrk -t1 -c${2} -e qatengine -d${3} ${7} https://${4}:${5}/${6}
 }
 
-ktls_core(){
+ktlsold_core(){ #does not use receive side ktls
 	export LD_LIBRARY_PATH=$KTLS_OSSL_LIBS
 	debug "${FUNCNAME[0]}: taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
 	debug "${FUNCNAME[0]}: libs -> $(ldd ${WRK_ROOT}/wrk)"
 	taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }
 
-ktlsdrop_core(){
+ktls_core(){
 	export LD_LIBRARY_PATH=$ktls_drop_ossl
-	debug "$(ldd ${ktls_drop_wrk})"
+	#debug "$(ldd ${ktls_drop_wrk})"
 	debug "${FUNCNAME[0]}: taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
 	$ktls_drop_wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }

@@ -20,7 +20,6 @@ SSL_CTX *ssl_init() {
         SSL_CTX_set_verify_depth(ctx, 0);
         SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
         SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
-	SSL_CTX_set_options(ctx, SSL_OP_ENABLE_KTLS);
     }
 
     return ctx;
@@ -65,12 +64,6 @@ SSL_CTX *ssl_offload_init(char * engine_str) {
 status ssl_connect(connection *c, char *host) {
     int r;
     /* OSSL_3 compatibility */
-    /*
-    if(c->connected)
-	    return ERROR;
-    else
-	    c->connected=true;
-	    */
 
     SSL_set_fd(c->ssl, c->fd);
     SSL_set_tlsext_host_name(c->ssl, host);

@@ -26,10 +26,12 @@ dir_to_datfrag(){
 # param: 1:- top level directory to generate bar charts comparing data points 2-events 3-output directory for bar group chart
 dir_to_multibar(){
 	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	local -n _multi_evs=$2
 	for _multi_dir in ${1}/*; do
-		echo "$(echo ${_multi_dir} | sed 's/_perf//g' )"
-		>&2 echo "${FUNCNAME[0]}: Reading ${_multi_dir}/${_bev}'s"
-		dir_to_datfrag 	${_multi_dir}/* #get bar grouping on all
+		subdirs=()
+		subdirs+=("$(ls -d ${_multi_dir}/* )")
+		>&2 echo "${FUNCNAME[0]}: Reading ${_multi_dir}"
+		dir_to_datfrag subdirs _multi_evs sub_frags.tst #get bar grouping on all
 	done
 
 }
