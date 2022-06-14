@@ -55,10 +55,25 @@ gen_nfile(){
 	echo "$3" > $p_file
 }
 
-# given a bandwidth directory, check each file in the directory and sum the bandwidths and
-# get average latencies
+# given a bandwidth directory, check each file in the directory and sum the bandwidths
 # 1- directory 2-core specific outfile
 parse_band_dir(){
+	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params" && return -1
+	echo -n "" > $2
+	total_band=0
+	for i in $1/*; do
+		band=$(cat $i | sed -E -n -e 's/Transfer\/sec:\s*([0-9]*.[0-9]*)(MB|GB|B|KB)/\1 \2/p' <&0)
+		echo $band >> $2
+		debug "${FUNCNAME[0]}: got $band from $i"
+	done
+	total=$(awk '$2 ~ /GB/ {sum+=$1*8;} $2 ~ /MB/ {sum+=($1*8)/1000;} END{printf "%.2f %s\n", sum, "GBit/s total"}' ${2})
+	debug "${FUNCNAME[0]}: got total bandwidth $total from dir: ${1}"
+	echo $( echo "$total" | sed 's/[^0-9.]//g') > $3
+}
+
+# given a bandwidth directory, check each file in the directory and sum the bandwidths
+# 1- directory 2-core specific outfile
+parse_lat_dir(){
 	[ -z "$3" ] && echo "${FUNCNAME[0]}: missing params" && return -1
 	echo -n "" > $2
 	total_band=0

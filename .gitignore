@@ -1,5 +1,4 @@
 obj/
-wrk
 *.swp
 *.swn
 *.swo
@@ -11,3 +10,7 @@ wrk_files
 *_perf
 *_band
 wrk_output
+./wrk
+*.tst
+*.gz
+openssl-*

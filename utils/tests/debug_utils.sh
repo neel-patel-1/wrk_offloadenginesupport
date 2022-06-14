@@ -5,5 +5,5 @@ source $WRK_ROOT/vars/env.src
 
 debug(){
 	[ -z "$1" ] && echo "[FATAL]: debug output called with no function argument"
-	>&2 echo "[DEBUG]: $1"
+	>&2 echo "[DEBUG]: $1" 
 }

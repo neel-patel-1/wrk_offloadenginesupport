@@ -9,14 +9,14 @@ source ${test_dir}/remote_utils.sh
 
 export res_dir=${WRK_ROOT}/results
 
-export enc=( "https" "http" )
+export enc=( "https" "ktlsdrop" )
 export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
 export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core_block ktlsdrop 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
+	capture_core_block link 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
 
 #Start a quick test using variables specified in config file
@@ -56,14 +56,14 @@ ipc_test(){
 # 1- duration
 ktls_drop_test(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
-	d_rates=( "0.01" "0.01" "0.02" "0.05" )
+	d_rates=( "0.001" "0.01" "0.02" "0.05" )
 	ktls_drop_dir=${res_dir}/ktls_drop_res
 	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
-	raw_perfs=${ktls_drop_dir}/perfs
+	dps=${ktls_drop_dir}/perfs
+	[ ! -d "$dps" ] && mkdir -p $dps
+	raw_perfs=${ktls_drop_dir}/raw_perfs
 	[ ! -d "$raw_perfs" ] && mkdir -p $raw_perfs
-	bands=${ktls_drop_dir}/bands
-	[ ! -d "$bands" ] && mkdir -p $bands
-	raw_bands=${bands}/raw_bands
+	raw_bands=${ktls_drop_dir}/raw_bands
 	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands
 	rate_dirs=()
 	# separate raw dirs for all rates
@@ -71,9 +71,13 @@ ktls_drop_test(){
 		# remote call to tofino switch
 		#rebuild_drop $_d
 		d_r_b=$raw_bands/${_d}_raw_band
+		[ ! -d "$d_r_b" ] && mkdir -p $d_r_b
 		d_r_p=$raw_perfs/${_d}_raw_perf
-		d_r_cp=$perfs/${_d}_perf
-		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp/${_d}_perf
+		[ ! -d "$d_r_p" ] && mkdir -p $d_r_p
+		d_r_cp=$dps/${_d}_perf
+		[ ! -d "$d_r_cp" ] && mkdir -p $d_r_cp
+		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp $d_r_cp
+		#process bandwidth into currend 
 	done
 	dir_to_multibar $d_r_cp
 

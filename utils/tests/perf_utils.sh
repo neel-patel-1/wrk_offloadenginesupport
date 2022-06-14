@@ -38,7 +38,8 @@ perf_outdir_timespec(){
 	file_to_dir $3 $2 time_evs
 }
 
-#params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir  8-perf output dump dir 9- optional perf data point dir(default makes subdir in raw output folder
+#params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir  8-perf output dump dir 9- optional perf data point dir(default makes subdir in raw output folder 10 - optional destination directory for processed bandwidth file
+#kept for compatibility: better implementation below v2
 multi_enc_perf(){
 	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	local -n _multi_methods=$1
@@ -67,6 +68,65 @@ multi_enc_perf(){
 		else
 			perf_outdir_timespec ${perf_time} $9/${_meth}_perf $8/${_meth}_raw_perf _multi_evs
 		fi
+		# wait for capture cores to finish writing
+		while [ -z "$(cat $7/core_*)" ];do
+			wa=0 # we done writing
+			for i in $7/core_*; do
+				[ -z "$(cat $7/core_*)" ] \
+					&& wa=1 #not done
+			done
+			[ "$wa" = "0" ] && break
+		done
+		# parse captured cores
+		echo "$(parse_band_dir $7 ${8}/${_meth}_band)" > ${10}/bandwidth
 
+
+	done
+}
+
+#params: 1- method 2-events to test 3-duration 4-clients per core  5-client core list 
+# 6-file to fetch 7-wrk output dump dir  8-processed wrk point dest file 
+# 9-perf dump dir 10 -processed perf point directory
+single_enc_perf(){
+	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	_meth=$1
+	local -n _single_evs=$2
+	local -n _single_cores=$5
+	debug "${FUNCNAME[0]}: testing encryption method: ${_meth}"
+
+	#start remote nginx
+	debug "${FUNCNAME[0]}: starting $_meth nginx server..."
+	start_remote_nginx $_meth $(echo -n "${_single_cores[*]}" | wc -c )
+	if [ "$_meth" = "http" ]; then
+		port=80
+	else
+		port=443
+	fi
+	wait_time=$(( duration / 6 ))
+	perf_time=$(( duration -  duration / 6 ))
+	#start clients
+	debug "${FUNCNAME[0]}: starting $_meth clients..."
+	capture_cores_async $_meth $4 $3 ${remote_ip} ${port} $6 $7 _single_cores
+	debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
+	sleep $wait_time
+
+	# start perf
+	debug "${FUNCNAME[0]}: starting perf capture (${_single_evs[*]}) ..."
+	perf_outdir_timespec ${perf_time} ${10} ${9}/${_meth}_raw_perf _single_evs
+
+	#process bandwidth into dest_dir
+	band=$(parse_band_dir $7 $8)
+
+}
+
+multi_enc_perf_v2(){
+	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	local -n _multi_methods=$1
+	local -n _multi_evs=$2
+	local -n _multi_cores=$3
+	#start remote nginx
+	debug "${FUNCNAME[0]}: testing encryption methods: ${_multi_methods[*]}"
+	for _meth in "${_multi_methods[@]}"; do
+		single_enc_perf ${_meth} _multi_evs $4 $5 $6 $7 ${9}/${_meth_perf}_perf/bandwidth $9 ${10}/${_meth}_perf
 	done
 }
