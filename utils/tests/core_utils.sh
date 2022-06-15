@@ -36,7 +36,7 @@ qtls_core(){
 	sudo env \
 	OPENSSL_ENGINES=$OPENSSL_LIBS/engines-1.1 \
 	LD_LIBRARY_PATH=$OPENSSL_LIBS \
-	taskset -c ${1} ${engine_wrk} -t1 -c${2} -e qatengine -d${3} ${7} https://${4}:${5}/${6}
+	taskset -c ${1} ${engine_wrk} -t1 -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
 
 qtlsdbg_core(){

@@ -9,14 +9,14 @@ source ${test_dir}/remote_utils.sh
 
 export res_dir=${WRK_ROOT}/results
 
-export enc=( "ktls" "https" "qtls" "axdimm" )
+export enc=( "ktls" "https" "axdimm" "qtls" )
 export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
 export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core_block qtls 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
+	capture_core_block https 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
 
 #Start a quick test using variables specified in config file
@@ -57,7 +57,7 @@ ipc_test(){
 # 1- duration
 ktls_drop_test(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
-	d_rates=( "0.001" "0.01" "0.02" "0.05" )
+	d_rates=( "0.00" "0.001" "0.01" "0.02" "0.05" )
 	ktls_drop_dir=${res_dir}/ktls_drop_res
 	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
 	dps=${ktls_drop_dir}/data_points
@@ -69,9 +69,8 @@ ktls_drop_test(){
 	# separate raw dirs for all rates
 	for _d in "${d_rates[@]}"; do
 		# remote call to tofino switch
-		pkts=$(python -c "print (int($_d * 4096))")
 		debug "${FUNCNAME[0]}: Testing Droprate: $_d with $pkts/4096 dropped"
-		rebuild_drop $pkts
+		change_drop $_d
 		d_r_b=$raw_bands/${_d}_raw_band
 		[ ! -d "$d_r_b" ] && mkdir -p $d_r_b
 		d_r_p=$raw_perfs/${_d}_raw_perf
@@ -80,6 +79,7 @@ ktls_drop_test(){
 		[ ! -d "$d_r_cp" ] && mkdir -p $d_r_cp
 		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp
 	done
+	get_data_point $dps
 	#ev+=( "bandwidth" ) # bandwidth is also measured in multi_enc_perf
 	#dir_to_multibar $dps ev test_dir.tst
 

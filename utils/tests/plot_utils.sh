@@ -35,3 +35,29 @@ dir_to_multibar(){
 	done
 
 }
+
+# 1-directory 2-stats
+get_data_point(){
+	cd $1
+	groups=( $(ls -d */ | sort -V -t_ -k1) )
+	xs=( $(ls -d ${groups[0]}* ) )
+	stats=($(ls -d ${xs[0]}*/*))
+	headers=()
+	for s in "${stats[@]}";do headers+=("$(basename ${s} | sed -E 's/_[0-9]+//g' )"); done
+	top_row="$( basename $(dirname $1) )"
+	for x in "${xs[@]}"; do top_row+=",$(basename $x)"; done
+	for h in "${headers[@]}"; do
+		echo $h
+		echo $top_row
+		for group in "${groups[@]}"; do
+			points=( $(ls -d ${group}* ) )
+			row=()
+			for point in "${points[@]}"; do
+				read p < $point/${h}*
+				row+=( "$p" )
+				#average $point/${stat}*
+			done
+			echo "$group ${row[@]}" | sed -E -e "s/ /,/g" -e "s/\///g" -e "s/_[a-z]+,/,/"
+		done
+	done
+}
