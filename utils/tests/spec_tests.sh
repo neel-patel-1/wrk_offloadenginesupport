@@ -10,7 +10,7 @@ export outfile=${WRK_ROOT}/spec_res/$prepend/bench_$(date +%T).csv
 copies=1
 export fSize=256K
 add_params="--nobuild "
-export duration=8h #ensure tests background bandwidth endures
+export duration=8h #ensure tests background bandwidth endures -- make sure to also change in vars/configs.src
 
 kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh

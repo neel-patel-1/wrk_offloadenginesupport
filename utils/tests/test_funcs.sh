@@ -16,7 +16,7 @@ export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 #start a quick test
 quick_test(){
 	echo "using default params: (core 1) (10s) (64 connections) dut@(192.168.2.2:80/file_256K.txt)"
-	capture_core_block https 1 1 5 192.168.2.2 443 file_256K.txt ktls_band.txt
+	capture_core_block axdimm 1 64 5 192.168.2.2 443 file_256K.txt ktls_band.txt
 }
 
 #Start a quick test using variables specified in config file
@@ -57,6 +57,39 @@ ipc_test(){
 # 1- duration
 ktls_drop_test(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	d_rates=( "0.00" "0.001" "0.01" "0.02" "0.05" )
+	ktls_drop_dir=${res_dir}/ktls_drop_res
+	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
+	dps=${ktls_drop_dir}/data_points
+	[ ! -d "$dps" ] && mkdir -p $dps
+	raw_perfs=${ktls_drop_dir}/raw_perfs
+	[ ! -d "$raw_perfs" ] && mkdir -p $raw_perfs
+	raw_bands=${ktls_drop_dir}/raw_bands
+	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands
+	# separate raw dirs for all rates
+	for _d in "${d_rates[@]}"; do
+		# remote call to tofino switch
+		debug "${FUNCNAME[0]}: Testing Droprate: $_d with $pkts/4096 dropped"
+		change_drop $_d
+		d_r_b=$raw_bands/${_d}_raw_band
+		[ ! -d "$d_r_b" ] && mkdir -p $d_r_b
+		d_r_p=$raw_perfs/${_d}_raw_perf
+		[ ! -d "$d_r_p" ] && mkdir -p $d_r_p
+		d_r_cp=$dps/${_d}_points
+		[ ! -d "$d_r_cp" ] && mkdir -p $d_r_cp
+		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp
+	done
+	get_data_point $dps
+	ev+=( "bandwidth" ) # bandwidth is also measured in multi_enc_perf
+	ev+=( "latency" ) # bandwidth is also measured in multi_enc_perf
+	#dir_to_multibar $dps ev test_dir.tst
+
+}
+
+#extra copy with modified params for regenerating osme results
+https_redrop_test(){
+	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	export enc=( "qtls" )
 	d_rates=( "0.00" "0.001" "0.01" "0.02" "0.05" )
 	ktls_drop_dir=${res_dir}/ktls_drop_res
 	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir

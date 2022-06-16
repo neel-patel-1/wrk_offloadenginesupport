@@ -71,6 +71,33 @@ parse_band_dir(){
 	echo $( echo "$total" | sed 's/[^0-9.]//g') > $3
 }
 
+# given a bandwidth directory, check each file in the directory and get the average latency and highest 99th percent
+# 1- directory 2- average latency outfile 3-99th percentile outfile
+parse_lat_dir(){
+	min=
+	max=
+	declare -A div=( ["us"]=.000001 ["ms"]=.001 ["m"]=60 ["h"]=3600 )
+	for i in $1/*; do
+		bandwidth=$(sed -E -n -e 's/Transfer\/sec:\s*([0-9]*.[0-9]*)(MB|GB|B|KB)/\1\2/p' $i)
+		avg=$(grep Latency $i | awk '{printf("%f", $2);}' )
+		echo $avg
+		stdev=$(grep Latency $i | awk '{printf("%f", $3);}' )
+
+		units=( $(grep Latency $i | grep -Eo '.s' | head -n 2 | tr '\n' ' ' )) #| sed -e 's/^/"/g' -e 's/ $/"/g' -e 's/ /" "/g' ) )
+		echo $units,$stdev,$avg
+		break
+		conv=$(python -c "print ( $avg * (${div[${units[0]}]#*:} / ${div[${units[1]}]#*:}) )")
+		pre=$(python -c "print ($conv + ($stdev * 2.3263))")
+		post=$(python -c "print ( $pre * (${div[${units[1]}]#*:} / ${div[${units[0]}]#*:}) )")
+		echo $min,$max,$post
+		#[[ -z "$min" ] || [ "$post" -lt "$min" ] && min=$post
+		#[ -z "$max" ] || [ "$post" -gt "$max" ] && max=$post
+	done
+	echo $avg
+	echo $min
+	echo $max
+}
+
 
 #given a (1)name and a (2)perf_file, search the file for names matching the event (as output names may differ from event specified)
 find_event_in_file(){

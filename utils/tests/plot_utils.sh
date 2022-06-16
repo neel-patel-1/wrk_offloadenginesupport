@@ -43,7 +43,7 @@ get_data_point(){
 	xs=( $(ls -d ${groups[0]}* ) )
 	stats=($(ls -d ${xs[0]}*/*))
 	headers=()
-	for s in "${stats[@]}";do headers+=("$(basename ${s} | sed -E 's/_[0-9]+//g' )"); done
+	for s in "${stats[@]}";do [[ ! " ${headers[*]} " =~ " $(basename ${s}| sed -E 's/_[0-9]+//g') " ]] && headers+=("$(basename ${s} | sed -E 's/_[0-9]+//g' )"); done
 	top_row="$( basename $(dirname $1) )"
 	for x in "${xs[@]}"; do top_row+=",$(basename $x)"; done
 	for h in "${headers[@]}"; do
@@ -53,9 +53,12 @@ get_data_point(){
 			points=( $(ls -d ${group}* ) )
 			row=()
 			for point in "${points[@]}"; do
-				read p < $point/${h}*
-				row+=( "$p" )
-				#average $point/${stat}*
+				need_avg=()
+				for i in $point/${h}*; do
+					read p < $i
+					need_avg+=( "$p" )
+				done
+				row+=( "$(average need_avg)" )
 			done
 			echo "$group ${row[@]}" | sed -E -e "s/ /,/g" -e "s/\///g" -e "s/_[a-z]+,/,/"
 		done

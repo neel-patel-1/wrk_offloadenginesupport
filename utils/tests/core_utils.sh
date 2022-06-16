@@ -31,6 +31,13 @@ axdimm_core(){
 }
 
 qtls_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	taskset -c ${1} ${default_wrk} -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+}
+
+qtlsold_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	sudo env \
