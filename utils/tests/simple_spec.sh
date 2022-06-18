@@ -27,7 +27,6 @@ kill_wrkrs() {
 spec_back_cores(){
 	debug "${FUNCNAME[0]}: ssh ${remote_host} ${remote_spec} --config=testConfig --action build $1"
 	ssh ${remote_host} ${remote_spec} --config=testConfig --action build $1 | tee spec_build.cpu
-	tail -f -n0 spec_build.cpu | grep -qe "Running Benchmarks"
 
 	local -n _cores=$2
 	for c in "${_cores[@]}"; do

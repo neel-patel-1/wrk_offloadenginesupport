@@ -90,7 +90,7 @@ ktls_drop_test(){
 new_drop(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	export enc=( "qtls" )
-	d_rates=( "0.01" "0.02" "0.05" )
+	d_rates=( "0.1" "1" "2" "5" )
 	ktls_drop_dir=${res_dir}/tc_ktls_drop_res
 	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
 	dps=${ktls_drop_dir}/data_points
@@ -101,8 +101,8 @@ new_drop(){
 	[ ! -d "$raw_bands" ] && mkdir -p $raw_bands
 	# separate raw dirs for all rates
 	for _d in "${d_rates[@]}"; do
-		# remote call to tofino switch
-		debug "${FUNCNAME[0]}: Testing Droprate: with $_d droprate"
+		remote_qdisc_drop_rule $_d
+		debug "${FUNCNAME[0]}: Testing Droprate: with $_d % droprate"
 		d_r_b=$raw_bands/${_d}_raw_band
 		[ ! -d "$d_r_b" ] && mkdir -p $d_r_b
 		d_r_p=$raw_perfs/${_d}_raw_perf
@@ -110,6 +110,7 @@ new_drop(){
 		d_r_cp=$dps/${_d}_points
 		[ ! -d "$d_r_cp" ] && mkdir -p $d_r_cp
 		multi_enc_perf enc ev $1 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp
+		remote_qdisc_remove_rule
 	done
 	get_data_point $dps
 	#ev+=( "bandwidth" ) # bandwidth is also measured in multi_enc_perf

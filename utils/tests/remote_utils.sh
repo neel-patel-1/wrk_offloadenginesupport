@@ -113,9 +113,9 @@ kill_procs(){
 
 #1 - drop rate to add to remote 
 remote_qdisc_drop_rule(){
-	percent=$(python -c "print ( $1 * 100)")
-	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc add dev ${remote_net_dev} root netem loss ${percent}%"
-	ssh ${remote_host} "sudo tc qdisc add dev ${remote_net_dev} root netem loss ${percent}%"
+	[ -z "$1" ] && echo "${FUNCNAME[0]}:params missing"
+	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc add dev ${remote_net_dev} root netem loss ${1}%"
+	ssh ${remote_host} "sudo tc qdisc add dev ${remote_net_dev} root netem loss ${1}%"
 }
 
 #1 - delete qdisc from root
