@@ -18,7 +18,7 @@ source $ASYNC_NGINX/scripts/async_libsrcs.source
 export remote_host=n869p538@pollux.ittc.ku.edu
 export remote_user="n869p538@pollux.ittc.ku.edu"
 export remote_net_dev=ens4f1
-export local_net_dev=ens4f1
+export local_net_dev=ens4f1np1
 export remote_ip=192.168.2.2
 export http_port=80
 export https_port=443

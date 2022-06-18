@@ -34,10 +34,12 @@ start_switchd(){
 	echo "switch startup completed"
 }
 
+# kill background control plane instances on switch
 kill_switchd(){
 	ssh ${tna_host} "ps aux | grep switchd | awk '{print \$2}' | xargs kill -KILL"
 }
 
+#1 - program to compile on switch
 compile_switch(){
 	[ -z "$1" ] && echo "${FUNCNAME[0]}: missing params"
 	ssh ${tna_host} <<runconfig
@@ -101,4 +103,23 @@ remote_file(){
 # 2 - num server cores
 start_remote_nginx(){
 	ssh ${remote_host} $remote_nginx_start $1 $2 2>/dev/null
+}
+
+# kill remote benchmarks and nginx workers
+kill_procs(){
+	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
+	ssh ${remote_host} ${remote_scripts}/kill_spec.sh
+}
+
+#1 - drop rate to add to remote 
+remote_qdisc_drop_rule(){
+	percent=$(python -c "print ( $1 * 100)")
+	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc add dev ${remote_net_dev} root netem loss ${percent}%"
+	ssh ${remote_host} "sudo tc qdisc add dev ${remote_net_dev} root netem loss ${percent}%"
+}
+
+#1 - delete qdisc from root
+remote_qdisc_remove_rule(){
+	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc del dev ${remote_net_dev} root netem"
+	ssh ${remote_host} "sudo tc qdisc del dev ${remote_net_dev} root "
 }

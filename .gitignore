@@ -14,3 +14,4 @@ wrk_output
 *.tst
 *.gz
 openssl-*
+*.cpu

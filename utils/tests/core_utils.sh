@@ -66,7 +66,7 @@ ktls_core(){
 	export LD_LIBRARY_PATH=$ktls_drop_ossl
 	#debug "$(ldd ${ktls_drop_wrk})"
 	debug "${FUNCNAME[0]}: taskset -c ${1} ${WRK_ROOT}/wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
-	$ktls_drop_wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+	taskset -c ${1} $ktls_drop_wrk -t1 -c${2}  -d${3} ${7} https://${4}:${5}/${6}
 }
 
 link_core(){
@@ -85,7 +85,7 @@ capture_core_async(){
 # PARAMS: 1-method 2-core (to pin clients) 3-clients (ie. 64 clients on a single core) 4-duration 5-remote_ip 6-port 7-file_path (starts at root) 8-output file 9-optional argumetns to wrk
 capture_core_block(){
 	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
-	${1}_core $2 $3 $4 $5 $6 $7 $9 #>  $8
+	${1}_core $2 $3 $4 $5 $6 $7 $9 > $8
 }
 
 # PARAMS: 1-method 2-clients_per_core  3-duration 4-remote_ip 5-port 6-file to fetch 7-output directory 8:end-list of cores to use 9-optional wrk params

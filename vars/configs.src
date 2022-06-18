@@ -5,7 +5,7 @@ declare -a file_sizes=( "4K" "16K" "64K" "128K" "256K" )
 #declare -a file_sizes=( "1M" "2M" )
 
 #client configurations -- method options include ( "axdimm" "qtls" "http" "https" "ktls" )
-declare -a methods=( "ktls" "https" "qtls" "axdimm" )
+declare -a methods=( "ktls" )
 export duration=8h
 export fSize=256K
 export numCores=10
@@ -19,7 +19,7 @@ export sep_cpu_list=( "21" "22" "23" "24" "25" "26" "27" "28" "29" "30" )
 export co_cpu_list=( "20" "31" "32" "33" "34" "35" "36" "37" "38" "39" )
 
 #spec tests -- tried so far ( "531.deepsjeng_r" "557.xz_r" "505.mcf_r" "525.x264_r" ) 
-declare -a tests=( "505.mcf_r" "525.x264_r" )
+declare -a tests=( "549.fotonik3d_r" "649.fotonik3d_s" )
 
 #p_events -- tried so far ( "LLC-load-misses" "LLC-loads" "UNC_M_CAS_COUNT.WR" "UNC_M_CAS_COUNT.RD" )
 declare -a p_events=( "UNC_M_CAS_COUNT.WR" "UNC_M_CAS_COUNT.RD" )
@@ -33,5 +33,5 @@ export dry_run=n
 
 #names
 export band_test_name=all_bandwidths
-export benchmark_name=axdimm_spec
+export benchmark_name=ktls_only_traffic
 export test_name=test_band_and_stats

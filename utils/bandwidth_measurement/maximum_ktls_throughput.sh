@@ -23,7 +23,7 @@ sudo ethtool -K ${local_net_dev} tls-hw-tx-offload on tls-hw-rx-offload on
 echo -n "" > ${outfile}
 for j in `seq 0 $(( $numCores - 1 ))`; do
 	# write transfer per sec
-	${UTIL_DIR}/bandwidth_measurement/tls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &
+	${UTIL_DIR}/bandwidth_measurement/ktls_core_throughput.sh ${j} ${duration} ${fSize} ${outfile} &
 done
 
 #total bandwidth report
