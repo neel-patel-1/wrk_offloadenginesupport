@@ -26,6 +26,18 @@ perfmon_sys(){
 	ssh ${1} "${2} ${p_com} sleep $3" 2>$4 1>/dev/null
 }
 
+#1- duration 2- outfile 3- events to monitor
+perfmon_sys_upd(){
+	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	#[ ! -f "$4" ] && echo -n "" > $4
+	perf_enable
+	p_com="stat "
+	local -n sys_evs=$3
+	[ ! -z "${3}" ] && p_com+="-e $(echo ${sys_evs[*]} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
+	debug "${FUNCNAME[0]} Monitoring ${sys_evs[*]}"
+	ssh ${remote_host} "${remote_ocperf} ${p_com} sleep $1" 2>$2 1>/dev/null
+}
+
 #params: 1-duration 2-outdir 3-perf_filename 4:end-events
 #Fails if any variables are unset
 perf_outdir_timespec(){
@@ -53,8 +65,8 @@ multi_enc_perf(){
 			port=443
 		fi
 
-		wait_time=$(( duration / 6 ))
-		perf_time=$(( duration -  duration / 6 ))
+		wait_time=$(( $3 / 6 ))
+		perf_time=$(( $3 -  $3 / 6 ))
 		meth_raw_band=$7/${_meth}_raw_band # raw band dump directory for this method
 		meth_band_list=${meth_raw_band}/band_list # list of bandwidths
 		meth_raw_perf=$8/${_meth}_raw_perf #raw perf file for this method
@@ -91,38 +103,40 @@ multi_enc_perf(){
 	done
 }
 
-#params: 1- method 2-events to test 3-duration 4-clients per core  5-client core list 
-# 6-file to fetch 7-wrk output dump dir  8-processed wrk point dest file 
-# 9-perf dump dir 10 -processed perf point directory
+#params: 1- method 2-events to test 3-duration 4-clients per core  5-number of cores 
+# 6-file to fetch 7-num server cores
 single_enc_perf(){
-	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	[ -z "${7}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	_meth=$1
 	local -n _single_evs=$2
-	local -n _single_cores=$5
+	n_c_cores=$5
 	debug "${FUNCNAME[0]}: testing encryption method: ${_meth}"
 
 	#start remote nginx
-	debug "${FUNCNAME[0]}: starting $_meth nginx server..."
-	start_remote_nginx $_meth $(echo -n "${_single_cores[*]}" | wc -c )
-	if [ "$_meth" = "http" ]; then
-		port=80
-	else
-		port=443
-	fi
-	wait_time=$(( duration / 6 ))
-	perf_time=$(( duration -  duration / 6 ))
+	debug "${FUNCNAME[0]}: starting $7 core $_meth nginx server..."
+	start_remote_nginx $_meth $7
+	wait_time=$(( $3 / 6 ))
+	export perf_time=$(( $3 -  $3 / 6 ))
 	#start clients
-	debug "${FUNCNAME[0]}: starting $_meth clients..."
-	capture_cores_async $_meth $4 $3 ${remote_ip} ${port} $6 $7 _single_cores
+	debug "${FUNCNAME[0]}: starting $n_c_cores $_meth clients..."
+	b_file=${_meth}_${6}_${5}_${4}_client_${7}_server_band
+	port=$( getport ${_meth} )
+	debug "${FUNCNAME[0]}: capture_core_mt_async $_meth $5 $4  $3 ${remote_ip} $port $6 $b_file"
+	capture_core_mt_async $_meth $5 $4  $3 ${remote_ip} $port $6 $b_file
 	debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
 	sleep $wait_time
 
 	# start perf
 	debug "${FUNCNAME[0]}: starting perf capture (${_single_evs[*]}) ..."
-	perf_outdir_timespec ${perf_time} ${10} ${9}/${_meth}_raw_perf _single_evs
+	debug "${FUNCNAME[0]}: perfmon_sys_upd $perf_time ${_meth}_${6}_${5}_${4}_client_${7}_server_$( echo "${_single_evs[*]}" | sed 's/ /_/g')"
+	perfmon_sys_upd $perf_time ${_meth}_${6}_${5}_${4}_client_${7}_server_$( echo "${_single_evs[*]}" | sed 's/ /_/g') _single_evs
 
 	#process bandwidth into dest_dir
-	band=$(parse_band_dir $7 $8)
+	debug "${FUNCNAME[0]}: cat $b_file | grep -v Ready | grep Transfer | awk \"{print \$2 * 8}\" > tmp"
+	tot=$(cat $b_file | grep -v Ready | grep Transfer | awk "{print \$2 * 8}")
+	postf=$(cat $b_file | grep -v Ready | grep Transfer | awk "{print \$2 }" | grep -Eo '[A-Za-z]+')
+	cat $b_file > ${b_file}_raw
+	echo "${tot}${postf}" > $b_file
 
 }
 

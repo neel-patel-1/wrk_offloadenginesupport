@@ -118,3 +118,360 @@ perf_row_single_event_mult_files(){
 	echo "${row[*]}" | sed -e 's/ /,/g' >> $outfile
 }
 
+parse_cpu_dir(){
+	info=0
+	for i in *_raw_band; do
+		if [ "$(cat $i)" != "" ]; then
+			f_size=$( echo $i | awk -F_ '{print $3}' | sed 's/.txt//')
+			enc=$(echo $i | awk -F_ '{print $1}')
+			postf=$(cat $i | grep -v Ready | grep Transfer | awk "{print \$2 }" | grep -Eo '[A-Za-z]+')
+
+			tot=$(cat $i | grep -v Ready | grep Transfer | awk "{print \$2 * 8}")
+			echo $f_size,$enc,$tot$postf
+		fi
+	done
+	for i in *_raw_cpu_util; do
+		if [ "$(cat $i)" != "" ]; then
+			f_size=$( echo $i | awk -F_ '{print $3}' | sed 's/.txt//')
+			enc=$(echo $i | awk -F_ '{print $1}')
+			postf=$(cat $i | grep -v Ready | grep Transfer | awk "{print \$2 }" | grep -Eo '[A-Za-z]+')
+			tot=$(cat $i | awk 'BEGIN{sum=0;} {sum+=$1} END{avg=sum/NR; print avg}' )
+			echo $f_size,$enc,$tot$postf
+		fi
+	done
+}
+
+sort_parse_cpu(){
+	parse_cpu_dir | sort -V -t, -k1 -k3| grep -E '(MB|GB)'
+	parse_cpu_dir | sort -V -t, -k1 -k3| grep -E '[0-9]$'
+}
+
+sort_mem_sweep(){
+	export encs=( "https" "qtls" "ktls" "http" )
+	export files=( "file_4K.txt" "file_16K.txt" "file_64K.txt" "file_128K.txt" "file_256K.txt")
+	export s_cores=( "1" "2" "5" "10" )
+	export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
+
+	s_labels=",,"
+	for i in "${s_cores[@]}"; do
+		s_labels+=$i,
+		s_labels+=$(echo "${files[*]::${#files[@]}-1}" | sed -E 's/[^ \t]+/,/g') 
+	done
+	echo $s_labels
+
+	s_labels=,,
+	for e in "${encs[@]}"; do
+		s_labels+=$(echo "${files[*]}" | sed -E -e 's/ /,/g' -e 's/file_//g' -e 's/\.txt//g' ) 
+		s_labels+=,
+	done
+	s_labels=${s_labels::-1}
+	echo $s_labels
+	for e in "${encs[@]}"; do
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep unc ))
+
+		for v in "${ev[@]}"; do
+			f_help=$v
+			enc_row=( "$e" )
+			for f in "${files[@]}"; do
+				enc_row+=("$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed 's/\./_/g' ))")
+				
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep band ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			enc_row+=("$(cat $f)")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+}
+
+sort_sweep(){
+	export encs=( "https"  "http" )
+	export files=( "file_4K.txt" "file_16K.txt" "file_64K.txt" "file_128K.txt" "file_256K.txt")
+	export s_cores=( "1" "2" "5" "10" )
+	export ev=(  "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s")
+
+
+	s_labels=",,"
+	for i in "${s_cores[@]}"; do
+		s_labels+=$i,
+		s_labels+=$(echo "${files[*]::${#files[@]}-1}" | sed -E 's/[^ \t]+/,/g') 
+	done
+	echo $s_labels
+
+	s_labels=,,
+	for e in "${encs[@]}"; do
+		s_labels+=$(echo "${files[*]}" | sed -E -e 's/ /,/g' -e 's/file_//g' -e 's/\.txt//g' ) 
+		s_labels+=,
+	done
+	s_labels=${s_labels::-1}
+	echo $s_labels
+	for e in "${encs[@]}"; do
+
+		for v in "${ev[@]}"; do
+			f_help=$v
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				enc_row+=("$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep band ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			enc_row+=("$(cat $f)")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+}
+
+# also sum the different llc states and turn MB and GB into just nums
+sort_sweep(){
+	export encs=( "https"  "http" )
+	export files=( "file_4K.txt" "file_16K.txt" "file_64K.txt" "file_128K.txt" "file_256K.txt")
+	export s_cores=( "1" "2" "5" "10" )
+	export ev=(  "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s")
+
+
+	s_labels=",,"
+	for i in "${s_cores[@]}"; do
+		s_labels+=$i,
+		s_labels+=$(echo "${files[*]::${#files[@]}-1}" | sed -E 's/[^ \t]+/,/g') 
+	done
+	echo $s_labels
+
+	s_labels=,,
+	for e in "${encs[@]}"; do
+		s_labels+=$(echo "${files[*]}" | sed -E -e 's/ /,/g' -e 's/file_//g' -e 's/\.txt//g' ) 
+		s_labels+=,
+	done
+	s_labels=${s_labels::-1}
+	echo $s_labels
+	for e in "${encs[@]}"; do
+
+		for v in "${ev[@]}"; do
+			f_help=$v
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				enc_row+=("$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep band ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+}
+
+# also sum the different llc states and turn MB and GB into just nums
+sort_sweep_band(){
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$files" ] && export files=( "file_36608K.txt" )
+	[ -z "$s_cores" ] && export s_cores=( "1" "2" "5" "10" )
+	[ -z "$ev" ] && export ev=(  "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s")
+	[ -z "$dur" ] && dur=10
+
+
+	s_labels=",,"
+	for i in "${s_cores[@]}"; do
+		s_labels+=$i,
+		s_labels+=$(echo "${files[*]::${#files[@]}-1}" | sed -E 's/[^ \t]+/,/g') 
+	done
+	echo $s_labels
+
+	s_labels=,,
+	for e in "${encs[@]}"; do
+		s_labels+=$(echo "${files[*]}" | sed -E -e 's/ /,/g' -e 's/file_//g' -e 's/\.txt//g' ) 
+		s_labels+=,
+	done
+	s_labels=${s_labels::-1}
+	echo $s_labels
+	for e in "${encs[@]}"; do
+
+		for v in "${ev[@]}"; do
+			f_help=${v}
+			f_help+="_Gbit/s"
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
+				point=$(python -c "print ( $point * 64 * 8 / $dur / 1000000000) ")
+				enc_row+=("$point")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep band ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+}
+
+total_llc_evict_band(){
+	https_band=https,nginx_bandwidth,$( sort_sweep_band | awk -F, '$1 ~ /band/ { if($2 ~ /https/) for (i=3;i<=NF;i++) sum[i]+=$i} END{for (i in sum) printf("%f,", sum[i]); printf("\n")}' )
+	echo "$https_band"
+	https_row=https,llc_evict_band,$( sort_sweep_band | awk -F, '$1 ~ /unc_cha_llc.*/ { if($2 ~ /https/) for (i=3;i<=NF;i++) sum[i]+=$i} END{for (i in sum) printf("%f,", sum[i]); printf("\n")}' )
+	echo "$https_row"
+	http_band=http,nginx_bandwidth,$(sort_sweep_band | awk -F, '$1 ~ /band/ { if($2 ~ /http$/) for (i=3;i<=NF;i++) sum[i]+=$i} END{for (i in sum) printf("%f,", sum[i]); printf("\n")}')
+	echo "$http_band"
+	http_row=http,llc_evict_band,$(sort_sweep_band | awk -F, '$1 ~ /unc_cha_llc.*/ { if($2 ~ /http$/) for (i=3;i<=NF;i++) sum[i]+=$i} END{for (i in sum) printf("%f,", sum[i]); printf("\n")}')
+	echo "$http_row"
+}
+
+# also sum the different llc states and turn MB and GB into just nums
+sort_pcie_llc_band(){
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$files" ] && export files=( "file_3600K.txt" "file_36608K.txt" "file_40000K.txt" )
+	[ -z "$s_cores" ] && export s_cores=( "1" "2" "5" "10" )
+	[ -z "$ev" ] && export ev=(  "llc_misses.pcie_write" "llc_misses.pcie_write" )
+	[ -z "$dur" ] && dur=10
+
+
+	s_labels=",,"
+	for i in "${s_cores[@]}"; do
+		s_labels+=$i,
+		s_labels+=$(echo "${files[*]::${#files[@]}-1}" | sed -E 's/[^ \t]+/,/g') 
+	done
+	echo $s_labels
+
+	s_labels=,,
+	for e in "${encs[@]}"; do
+		s_labels+=$(echo "${files[*]}" | sed -E -e 's/ /,/g' -e 's/file_//g' -e 's/\.txt//g' ) 
+		s_labels+=,
+	done
+	s_labels=${s_labels::-1}
+	echo $s_labels
+	for e in "${encs[@]}"; do
+
+		for v in "${ev[@]}"; do
+			f_help=${v}
+			f_help+="_Gbit/s"
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
+				point=$(python -c "print ( $point * 4 * 8 / $dur / 1000000000) ")
+				enc_row+=("$point")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep band ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 / 1024 )")
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+}
+
+#ndeed to be in dir with one files resul only
+
+
+sort_mem_band(){
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$files" ] && export files=( "file_3600K.txt" "file_36608K.txt" "file_40000K.txt" )
+	[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" )
+
+	[ -z "$dur" ] && dur=20
+	[ -z "$perf_time" ] && export perf_time=17
+
+	for e in "${encs[@]}"; do
+
+		for v in "${ev[@]}"; do
+			f_help=${v}
+			f_help+="_Gbit/s"
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
+				point=$(python -c "print ( $point * 3 * 64 * 8 / $perf_time / 1000000000) ")
+				# * CHANS * CACHE_LINE_SIZE * BITS/BYTE / Time / (bits/Gbit)
+				enc_row+=("$point")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep -e 'band$' ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 / 1024 )")
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+}

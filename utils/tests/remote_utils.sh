@@ -118,8 +118,25 @@ remote_qdisc_drop_rule(){
 	ssh ${remote_host} "sudo tc qdisc add dev ${remote_net_dev} root netem loss ${1}%"
 }
 
+#1 - drop rate to add to remote 
+remote_qdisc_reorder(){
+	[ -z "$1" ] && echo "${FUNCNAME[0]}:params missing"
+	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc add dev ${remote_net_dev} root netem delay 2ms ${1}% 50%"
+	ssh ${remote_host} "sudo tc qdisc add dev ${remote_net_dev} root netem loss ${1}%"
+}
+
 #1 - delete qdisc from root
 remote_qdisc_remove_rule(){
 	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc del dev ${remote_net_dev} root netem"
 	ssh ${remote_host} "sudo tc qdisc del dev ${remote_net_dev} root "
+}
+# kill local wrkrs
+kill_wrkrs() {
+	ps aux | grep -e "wrk" -e "$duration" | awk '{print $2}' | xargs sudo kill -s 2
+}
+
+#1 - file
+gen_file_dut(){
+	echo $1 | sed -E 's/file_([0-9]+.).txt/\1/g'
+	ssh ${remote_host} ${remote_scripts}/gen_http_files.sh $(echo $1 | sed -E 's/file_([0-9]+.).txt/\1/g')
 }
