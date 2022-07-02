@@ -429,7 +429,8 @@ sort_pcie_llc_band(){
 
 sort_mem_band(){
 	[ -z "$encs" ] && export encs=( "https"  "http" )
-	[ -z "$files" ] && export files=( "file_3600K.txt" "file_36608K.txt" "file_40000K.txt" )
+	[ -z "$files" ] && export files=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
+
 	[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" )
 
 	[ -z "$dur" ] && dur=20
@@ -473,5 +474,132 @@ sort_mem_band(){
 		done
 		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
 		echo $f_help,$enc_row
+	done
+}
+
+sort_cache_access(){
+
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+
+
+	[ -z "$dur" ] && dur=20
+	[ -z "$perf_time" ] && export perf_time=17
+
+	for e in "${encs[@]}"; do
+		echo "$(basename $(pwd) ),$e"
+
+		for v in "${ev[@]}"; do
+			f_help=${v}
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
+				point=$(python -c "print($point / $dur )") #convert to a rate
+				enc_row+=("$point")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep -e 'band$' ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 / 1024 )")
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+
+}
+
+m_c_a(){
+	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
+	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		[ ! -d "$file_size" ] && echo "No dir for fsize" && return
+		echo $file_size
+		debug "entering $file_size"
+		cd $( echo $i | grep -Eo '[0-9]+.' )
+		sort_cache_access
+		cd ..
+	done
+}
+
+row_to_col(){
+	m_c_a > rows.txt
+	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		for enc in "${encs[@]}"; do
+			#https://unix.stackexchange.com/questions/169995/rows-to-column-conversion-of-file
+			grep -A"$((${#ev[@]} + 1))" -e"${file_size},${enc}\b" rows.txt | awk -F"," 'BEGIN{OFS=","} NR>1{ for (i=1; i<=NF; i++) RtoC[i]= (i in RtoC?RtoC[i] OFS :"") $i; } END{ for (i=1; i<=NF; i++) print RtoC[i] }' > ${file_size}_$enc.all_unsort
+			debug "writing ${file_size}_${enc}.all_sort"
+			head -n 2 ${file_size}_${enc}.all_unsort  > ${file_size}_${enc}.all_sort
+			tail -n +3 ${file_size}_${enc}.all_unsort |  sort -V -k$((${#ev[@]} + 1)) -t, |uniq >> ${file_size}_${enc}.all_sort
+		done
+	done
+}
+
+
+col_to_gnuplot(){
+	#export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
+	export file_dirs=( "file_50000K" )
+	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	#export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
+
+	export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
+	#[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
+	#[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+
+	# get rows.txt and colonize
+	row_to_col
+
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		echo -n "" > ${file_size}_plot.dat
+		echo "$pl_min"
+
+		for enc in "${encs[@]}"; do
+			debug "generating ${file_size}_plot.dat"
+			tail -n +3 ${file_size}_${enc}.all_sort | sed  -e 's/,/ /g' >> ${file_size}_plot.dat
+			echo "" >> ${file_size}_plot.dat
+			echo "" >> ${file_size}_plot.dat
+		done
+	done
+	# data files complete
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		ctr=1
+		for e in "${ev[@]}"; do # for each (file_size, event) make a new plot
+			gp_script="set terminal png size 700,500; set output '${i}_${e}.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+			gp_script+="set yr [0:*]; "
+			gp_script+="set title '$(echo "$e" | sed 's/_//g') event vs. encryption'; "
+			gp_script+="set xlabel 'Network Bandwidth(Gbit/s)'; "
+			gp_script+="set ylabel 'Events/s'; "
+			gp_script+="plot '${file_size}_plot.dat' index 0 using $((${#ev[@]}+1)):$ctr title '${encs[0]}' with linespoints linestyle 1 , "
+			gp_script+="'${file_size}_plot.dat' index 1 using $((${#ev[@]}+1)):$ctr title '${encs[1]}' with linespoints linestyle 2 "
+			debug "making graph for ${i} ${e}"
+			gnuplot -e "${gp_script}"
+			ctr=$(( ctr + 1))
+		done
 	done
 }

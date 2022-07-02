@@ -140,3 +140,8 @@ gen_file_dut(){
 	echo $1 | sed -E 's/file_([0-9]+.).txt/\1/g'
 	ssh ${remote_host} ${remote_scripts}/gen_http_files.sh $(echo $1 | sed -E 's/file_([0-9]+.).txt/\1/g')
 }
+
+no_ht(){
+	echo off | sudo tee /sys/devices/system/cpu/smt/control
+	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
+}

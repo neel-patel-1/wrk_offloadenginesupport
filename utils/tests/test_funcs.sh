@@ -119,8 +119,8 @@ new_drop(){
 reorder_test(){
 	[ -z "${1}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	export enc=( "ktls" "https" )
-	d_rates=( "0.1" "1" "2" "5" )
-	ktls_drop_dir=tc_ktls_reorder_res
+	d_rates=( "2" "5" )
+	ktls_drop_dir=tc_ktls_reorder_res_redux
 	[ ! -d "$ktls_drop_dir" ] && mkdir -p $ktls_drop_dir
 	dps=${ktls_drop_dir}/data_points
 	[ ! -d "$dps" ] && mkdir -p $dps
@@ -139,7 +139,7 @@ reorder_test(){
 		[ ! -d "$d_r_p" ] && mkdir -p $d_r_p
 		d_r_cp=$dps/${_d}_points
 		[ ! -d "$d_r_cp" ] && mkdir -p $d_r_cp
-		multi_enc_perf enc ev 10 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp
+		multi_enc_perf enc ev 20 64 cli_cores file_256K.txt $d_r_b $d_r_p $d_r_cp
 		remote_qdisc_remove_rule
 	done
 	get_data_point $dps
@@ -220,7 +220,7 @@ llc_core_sweep(){
 	[ -z ${ev} ] && export ev=(  "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s")
 
 
-	#gen_file_dut $file
+	gen_file_dut $file
 	for e in "${encs[@]}"; do
 		core_info="nginx_cores,"
 		for s in "${s_cores[@]}"; do
@@ -263,43 +263,18 @@ llc_multi_file_sweep(){
 	done
 }
 
-
-llc_multi_file_insert_band(){ #INSERT BAND
-	#export files=( "file_4K.txt" "file_16K.txt" "file_64K.txt" "file_128K.txt" "file_256K.txt")
-	#export files=( "file_1M.txt" "file_2M.txt" "file_5M.txt" "file_10M.txt" "file_20M.txt" "file_30M.txt" "file_36608K.txt" )
-	#export s_cores=( "3" "4" "6" "7" "8" )
-	export encs=( "https" "http" )
-	export c_cores=( "1" "2" "5" "10" "12" )
-	export files=( "file_3600K.txt" "file_36608K.txt" "file_40000K.txt" )
-	#export files=( "file_10G.txt" )
-	export dur=20
-	export s_cores=( "1" "2" "5" "10" )
-	export ev=(  "llc_misses.pcie_write" "llc_misses.pcie_write" )
-	export cns=64
-
-	
-	for f in "${files[@]}"; do
-		dir=$(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
-		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
-		export file=$f
-		cd $dir
-		llc_core_sweep $dur
-		sort_pcie_llc_band >> res.txt
-		cd ..
-	done
-}
-
 mem_multi_file(){ #mem_band
 	export encs=( "https" "http" )
-	export files=( "file_4K.txt" "file_256K.txt" "file_3600K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
-	export dur=10
+	export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
+	#export file_dirs=( "file_64K.txt"  )
+	export dur=20
 	export c_cores=( "1" "2" "5" "10" "12" )
 	export s_cores=( "1" "2" "5" "10" )
-	export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" )
+	export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
 	export cns=64
 
 	
-	for f in "${files[@]}"; do
+	for f in "${file_dirs[@]}"; do
 		dir=$(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
 		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
 		export file=$f
@@ -308,4 +283,52 @@ mem_multi_file(){ #mem_band
 		sort_mem_band >> res.txt
 		cd ..
 	done
+	col_to_gnuplot
+}
+
+#EVICT BAND
+cache_access_multi_file_sweep(){ 
+	export encs=( "https" "http" )
+	export files=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
+	#export files=(  "file_50000K.txt" )
+	export dur=20
+	export c_cores=( "1" "2" "5" "10" "12" )
+	export s_cores=( "1" "2" "5" "10" )
+	export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
+	export cns=64
+
+	
+	for f in "${files[@]}"; do
+		dir=$(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
+		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
+		export file=$f
+		cd $dir
+		llc_core_sweep $dur
+		sort_cache_access >> res.txt
+		cd ..
+	done
+	col_to_gnuplot
+}
+
+file_stat_collect(){ 
+	export encs=( "https" "http" )
+	export files=( "file_128K.txt" "file_36608K.txt" "file_497B.txt" )
+	#export files=(  "file_50000K.txt" )
+	export dur=20
+	export c_cores=( "1" "2" "5" "10" "12" )
+	export s_cores=( "1" "2" "5" "10" )
+	export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
+	export cns=64
+
+	
+	for f in "${files[@]}"; do
+		dir=$(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
+		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
+		export file=$f
+		cd $dir
+		llc_core_sweep $dur
+		sort_cache_access >> res.txt
+		cd ..
+	done
+	col_to_gnuplot
 }

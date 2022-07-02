@@ -15,3 +15,4 @@ wrk_output
 *.gz
 openssl-*
 *.cpu
+utils/tests/*/*
