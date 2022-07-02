@@ -1,0 +1,12 @@
+
+ Performance counter stats for 'system wide':
+
+         2,071,895       unc_m_cas_count_rd_0                                        
+                 0       unc_m_cas_count_rd_1                                        
+         2,393,971       unc_m_cas_count_wr_0                                        
+                 0       unc_m_cas_count_wr_1                                        
+        52,002,432 Bytes llc_misses.data_read                                        
+           778,125       offcore_response_all_reads_llc_miss_local_dram                                   
+
+       9.003513012 seconds time elapsed
+

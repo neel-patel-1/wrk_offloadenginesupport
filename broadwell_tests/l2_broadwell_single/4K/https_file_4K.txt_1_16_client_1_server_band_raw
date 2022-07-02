@@ -1,0 +1,8 @@
+Running 30s test @ https://192.168.1.2:443/file_4K.txt
+  1 threads and 16 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   628.13us  181.41us  18.56ms   89.64%
+    Req/Sec    25.52k     1.99k   34.80k    82.00%
+  761684 requests in 30.00s, 3.08GB read
+Requests/sec:  25389.26
+Transfer/sec:    105.01MB

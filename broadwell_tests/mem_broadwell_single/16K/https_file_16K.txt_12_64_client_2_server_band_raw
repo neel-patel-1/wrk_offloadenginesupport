@@ -1,0 +1,8 @@
+Running 10s test @ https://192.168.1.2:443/file_16K.txt
+  12 threads and 64 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.39ms  552.28us  34.97ms   99.33%
+    Req/Sec     3.63k   341.40     5.00k    87.28%
+  437099 requests in 10.10s, 6.77GB read
+Requests/sec:  43276.02
+Transfer/sec:    686.19MB

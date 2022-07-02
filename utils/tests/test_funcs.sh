@@ -18,8 +18,12 @@ export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 quick_test(){
 	enc=$1
 	kill_wrkrs
-	start_remote_nginx $enc 10
-	capture_core_mt_async $1 12 64 10 192.168.1.2 80 file_10G.txt ${1}_band.txt
+	start_remote_nginx $enc 1
+	if [ "$enc" = "http" ]; then
+		capture_core_mt_async $1 12 64 10 192.168.1.2 80 file_256K.txt ${1}_band.txt
+	else
+		capture_core_mt_async $1 12 64 10 192.168.1.2 443 file_256K.txt ${1}_band.txt
+	fi
 }
 
 #Start a quick test using variables specified in config file
@@ -238,6 +242,41 @@ llc_core_sweep(){
 
 }
 
+#1-duration
+llc_con_sweep(){
+	[ -z ${encs} ] && export encs=( "https" "http" )
+	[ -z ${file} ] && export file="file_36608K.txt"
+	[ -z ${s_cores} ] && export s_cores=( "1" )
+	[ -z ${c_cores} ] && export c_cores=( "12" )
+	[ -z ${cons} ] && export cons=( "2" "4" "16" "32" "64" )
+	[ -z ${ev} ] && export ev=(  "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s")
+
+
+	gen_file_dut $file
+	for e in "${encs[@]}"; do
+		core_info="nginx_cores,"
+		for s in "${s_cores[@]}"; do
+			for c in "${c_cores[@]}"; do
+				for con in "${cons[@]}"; do
+					kill_wrkrs
+					if [ "$con" -lt "$c" ]; then
+						single_enc_perf $e ev $1 $con $con $file $s
+					else
+						single_enc_perf $e ev $1 $con $c $file $s
+					fi
+
+					core_info+="${s}s_${c}x${con}c,"
+				done
+			done
+		done
+	done
+	echo "file_size:${file}" >> res.txt
+	echo "Cli_Serv_Config,$core_info" >> res.txt
+	total_llc_evict_band >> res.txt
+	return
+
+}
+
 #EVICT BAND
 llc_multi_file_sweep(){ 
 	#export files=( "file_4K.txt" "file_16K.txt" "file_64K.txt" "file_128K.txt" "file_256K.txt")
@@ -311,22 +350,26 @@ cache_access_multi_file_sweep(){
 }
 
 file_stat_collect(){ 
-	export encs=( "https" "http" )
-	export files=( "file_128K.txt" "file_36608K.txt" "file_497B.txt" )
-	#export files=(  "file_50000K.txt" )
-	export dur=20
-	export c_cores=( "1" "2" "5" "10" "12" )
-	export s_cores=( "1" "2" "5" "10" )
-	export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
-	export cns=64
+	#export encs=( "https" "http" )
+	export encs=( "https" )
+	#export file_dirs=( "file_64K.txt" "file_256K.txt" "file_36608K.txt" "file_64B.txt"  "file_4K.txt" "file_16K.txt" )
+	export file_dirs=( "file_64K.txt" "file_256K.txt" "file_36608K.txt" "file_64B.txt"  "file_4K.txt" "file_16K.txt" )
+	export dur=10
+	export c_cores=( "12" )
+	export s_cores=( "3" "4" "5" )
+	#export cons=( "1" "4" "16" "64" "256" "512" "1024" )
+	export cons=( "640" "768" "896" "1024" )
+	#export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
+	export ev=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
+	#export cns=64
 
 	
-	for f in "${files[@]}"; do
+	for f in "${file_dirs[@]}"; do
 		dir=$(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
 		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
 		export file=$f
 		cd $dir
-		llc_core_sweep $dur
+		llc_con_sweep $dur
 		sort_cache_access >> res.txt
 		cd ..
 	done

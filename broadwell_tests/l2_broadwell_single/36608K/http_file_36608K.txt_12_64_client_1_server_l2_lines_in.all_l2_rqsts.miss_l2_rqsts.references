@@ -1,0 +1,13 @@
+
+ Performance counter stats for 'sleep 25':
+
+            25,068      l2_lines_in_all                                             
+            25,174      l2_rqsts_miss                                               
+            42,685      l2_rqsts_references                                         
+
+      25.001673482 seconds time elapsed
+
+       0.001643000 seconds user
+       0.000000000 seconds sys
+
+

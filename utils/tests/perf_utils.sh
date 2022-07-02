@@ -19,7 +19,7 @@ perfmon_sys(){
 	[ -z "${4}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	#[ ! -f "$4" ] && echo -n "" > $4
 	perf_enable
-	p_com="stat "
+	p_com="stat --time $(( ${3} * 1000 )) "
 	local -n sys_evs=$5
 	[ ! -z "${5}" ] && p_com+="-e $(echo ${sys_evs[*]} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
 	debug "${FUNCNAME[0]} Monitoring ${sys_evs[*]}"
@@ -31,11 +31,11 @@ perfmon_sys_upd(){
 	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
 	#[ ! -f "$4" ] && echo -n "" > $4
 	perf_enable
-	p_com="stat "
+	p_com="stat --time $(( ${1} * 1000 )) "
 	local -n sys_evs=$3
 	[ ! -z "${3}" ] && p_com+="-e $(echo ${sys_evs[*]} | sed -e 's/^/"/g' -e 's/ /" -e "/g' -e 's/$/"/g')"
 	debug "${FUNCNAME[0]} Monitoring ${sys_evs[*]}"
-	ssh ${remote_host} "${remote_ocperf} ${p_com} sleep $1" 2>$2 1>/dev/null
+	ssh ${remote_host} "${remote_ocperf} ${p_com} " 2>$2 1>/dev/null
 }
 
 #params: 1-duration 2-outdir 3-perf_filename 4:end-events

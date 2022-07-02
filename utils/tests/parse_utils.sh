@@ -508,12 +508,61 @@ sort_cache_access(){
 			val=$(cat $f)
 			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
 			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 )")
 			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 )")
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 )")
 				#echo "MBMATCH:${BASH_REMATCH[1]}"
 			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 / 1024 )")
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 / 1000 )")
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+
+}
+
+ax_mem_band(){
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$ev" ] && export ev=(  "unc_m_cas_count_rd_0"  "unc_m_cas_count_rd_1" "unc_m_cas_count_wr_0" "unc_m_cas_count_wr_1" )
+
+
+	[ -z "$dur" ] && dur=20
+	[ -z "$perf_time" ] && export perf_time=17
+
+	for e in "${encs[@]}"; do
+		echo "$(basename $(pwd) ),$e"
+
+		for v in "${ev[@]}"; do
+			f_help=${v}
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
+				point=$(python -c "print($point / $dur )") #convert to a rate
+				enc_row+=("$point")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep -e 'band$' ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 )")
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 / 1000 )")
 			else
 				val=${BASH_REMATCH[1]}
 
@@ -553,7 +602,7 @@ row_to_col(){
 			grep -A"$((${#ev[@]} + 1))" -e"${file_size},${enc}\b" rows.txt | awk -F"," 'BEGIN{OFS=","} NR>1{ for (i=1; i<=NF; i++) RtoC[i]= (i in RtoC?RtoC[i] OFS :"") $i; } END{ for (i=1; i<=NF; i++) print RtoC[i] }' > ${file_size}_$enc.all_unsort
 			debug "writing ${file_size}_${enc}.all_sort"
 			head -n 2 ${file_size}_${enc}.all_unsort  > ${file_size}_${enc}.all_sort
-			tail -n +3 ${file_size}_${enc}.all_unsort |  sort -V -k$((${#ev[@]} + 1)) -t, |uniq >> ${file_size}_${enc}.all_sort
+			tail -n +3 ${file_size}_${enc}.all_unsort |  sort -g -k$((${#ev[@]} + 1)) -t, |uniq >> ${file_size}_${enc}.all_sort
 		done
 	done
 }
@@ -561,14 +610,12 @@ row_to_col(){
 
 col_to_gnuplot(){
 	#export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
-	export file_dirs=( "file_50000K" )
+	#export file_dirs=( "file_50000K" )
 	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
 	[ -z "$encs" ] && export encs=( "https"  "http" )
 	#export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
 
-	export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
-	#[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
-	#[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+	[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
 
 	# get rows.txt and colonize
 	row_to_col
@@ -601,5 +648,17 @@ col_to_gnuplot(){
 			gnuplot -e "${gp_script}"
 			ctr=$(( ctr + 1))
 		done
+	done
+}
+
+find_file_data(){
+	#start at toplev
+	unset file_dirs
+	unset encs
+	export file_dirs=( $(ls -d */ | sed 's/\///g') )
+	for i in "${dirs[@]}"; do 
+		echo "checking file size $i"; 
+		cd $i
+		[ -z "${encs}" ] && export encs=( $(ls -1 | awk -F_ '{print $1}' | uniq | grep -v -e'1' -e'res.txt') )
 	done
 }
