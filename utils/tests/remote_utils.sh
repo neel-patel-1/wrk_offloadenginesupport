@@ -140,6 +140,15 @@ gen_file_dut(){
 	debug "$(echo $1 | sed -E -e 's/B//g' -e 's/file_([0-9]+.).txt/\1/g')"
 	ssh ${remote_host} ${remote_scripts}/gen_http_files.sh $(echo $1 | sed -E -e 's/B//g' -e 's/file_([0-9]+.).txt/\1/g')
 }
+#1 - size 2- name
+gen_file_dut_name(){
+	ssh ${remote_host} "${remote_scripts}/gen_http_files_name.sh $1 $2"
+}
+
+#1 - size #2- num
+gen_multi_files_dut(){
+	ssh ${remote_host} "${remote_scripts}/gen_https_multi_files.sh $1 $2"
+}
 
 no_ht(){
 	echo off | sudo tee /sys/devices/system/cpu/smt/control

@@ -38,6 +38,18 @@ perfmon_sys_upd(){
 	ssh ${remote_host} "${remote_ocperf} ${p_com} " 2>$2 1>/dev/null
 }
 
+#1- duration 2- server cores
+perfmem_cores(){
+	[ -z "${2}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	#[ ! -f "$4" ] && echo -n "" > $4
+	local -n mem_cores=$2
+	perf_enable
+	p_com="mem record -C $( echo ${mem_cores[*]} | sed -e 's/ /,/g'  ) sleep $1"
+	debug "ssh ${remote_host} \"${remote_ocperf} ${p_com} \" 2>$2 1>/dev/null"
+	ssh ${remote_host} "${remote_ocperf} ${p_com} "
+	ssh ${remote_host} "${remote_ocperf} mem report | tee mem_out " 2>$2 1>/dev/null
+}
+
 #params: 1-duration 2-outdir 3-perf_filename 4:end-events
 #Fails if any variables are unset
 perf_outdir_timespec(){
@@ -50,6 +62,40 @@ perf_outdir_timespec(){
 	file_to_dir $3 $2 time_evs
 }
 
+#params: 1- method 2-events to test 3-duration 4-clients per core  5-number of cores 
+# 6-file to fetch 7-num server cores
+single_enc_perf_mf(){
+	[ -z "${7}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
+	_meth=$1
+	local -n _single_evs=$2
+	n_c_cores=$5
+	debug "${FUNCNAME[0]}: testing encryption method: ${_meth}"
+
+	#start remote nginx
+	wait_time=$(( $3 / 6 ))
+	export perf_time=$(( $3 -  $3 / 6 ))
+	#start clients
+	debug "${FUNCNAME[0]}: starting $n_c_cores $_meth clients..."
+	b_file=${_meth}_${6}_${5}_${4}_client_${7}_server_band
+	port=$( getport ${_meth} )
+	debug "${FUNCNAME[0]}: capture_core_mt_async $_meth $5 $4  $3 ${remote_ip} $port $6 $b_file"
+	capture_core_mt_async_mf $_meth $5 $4  $3 ${remote_ip} $port $6 $b_file
+	debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
+	sleep $wait_time
+
+	# start perf
+	debug "${FUNCNAME[0]}: starting perf capture (${_single_evs[*]}) ..."
+	debug "${FUNCNAME[0]}: perfmon_sys_upd $perf_time ${_meth}_${6}_${5}_${4}_client_${7}_server_$( echo "${_single_evs[*]}" | sed 's/ /_/g')"
+	perfmon_sys_upd $perf_time ${_meth}_${6}_${5}_${4}_client_${7}_server_$( echo "${_single_evs[*]}" | sed 's/ /_/g') _single_evs
+
+	#process bandwidth into dest_dir
+	debug "${FUNCNAME[0]}: cat $b_file | grep -v Ready | grep Transfer | awk \"{print \$2 * 8}\" > tmp"
+	tot=( $(cat $b_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+	GB=$( sum_band_array tot )
+	cat $b_file > ${b_file}_raw
+	echo "${GB}GB" > $b_file
+
+}
 #params: 1- method array 2-events to test 3-duration 4-clients per core   5-client core list 6-file to fetch 7-wrk output dump dir(per core)  8-perf output dump dir(method number of files) 9-perf data point dir 
 multi_enc_perf(){
 	[ -z "${3}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
@@ -152,42 +198,3 @@ multi_enc_perf_v2(){
 	done
 }
 
-#params: 1- method 2-events to test 3-delay to start perf 4-clients per core  5-number of cores 
-# 6-file to fetch 7-num server cores 
-single_enc_perf_delay(){
-	[ -z "${7}" ] && echo "${FUNCNAME[0]}:Missing Parameters"
-
-	_meth=$1
-	local -n _single_evs=$2
-	n_c_cores=$5
-	debug "${FUNCNAME[0]}: testing encryption method: ${_meth}"
-
-	gen_file_dut $6
-
-	#start remote nginx
-	debug "${FUNCNAME[0]}: starting $7 core $_meth nginx server..."
-	start_remote_nginx $_meth $7
-	wait_time=$(( $3 / 6 ))
-	export perf_time=30
-	#start clients
-	debug "${FUNCNAME[0]}: starting $n_c_cores $_meth clients..."
-	b_file=${_meth}_${6}_${5}_${4}_client_${7}_server_band
-	port=$( getport ${_meth} )
-	debug "${FUNCNAME[0]}: capture_core_mt_async $_meth $5 $4  $3 ${remote_ip} $port $6 $b_file"
-	capture_core_mt_async $_meth $5 $4  $3 ${remote_ip} $port $6 $b_file
-	debug "${FUNCNAME[0]}: waiting $wait_time seconds ..."
-	sleep $wait_time
-
-	# start perf
-	debug "${FUNCNAME[0]}: starting perf capture (${_single_evs[*]}) ..."
-	debug "${FUNCNAME[0]}: perfmon_sys_upd $perf_time ${_meth}_${6}_${5}_${4}_client_${7}_server_$( echo "${_single_evs[*]}" | sed 's/ /_/g')"
-	perfmon_sys_upd $perf_time ${_meth}_${6}_${5}_${4}_client_${7}_server_$( echo "${_single_evs[*]}" | sed 's/ /_/g') _single_evs
-
-	#process bandwidth into dest_dir
-	debug "${FUNCNAME[0]}: cat $b_file | grep -v Ready | grep Transfer | awk \"{print \$2 * 8}\" > tmp"
-	tot=$(cat $b_file | grep -v Ready | grep Transfer | awk "{print \$2 * 8}")
-	postf=$(cat $b_file | grep -v Ready | grep Transfer | awk "{print \$2 }" | grep -Eo '[A-Za-z]+')
-	cat $b_file > ${b_file}_raw
-	echo "${tot}${postf}" > $b_file
-
-}

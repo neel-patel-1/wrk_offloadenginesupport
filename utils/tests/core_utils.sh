@@ -1,6 +1,7 @@
 #!/bin/bash
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/env.src
+source $WRK_ROOT/vars/environment.src
 
 source ${test_dir}/debug_utils.sh
 # SINGLE CORE METHOD FUNCTIONS #
@@ -31,7 +32,8 @@ https_mt_core(){
 	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
-	${default_wrk} -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+	# split https requests between two file versions
+	${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
 #offload cores
 axdimm_core(){
@@ -125,8 +127,31 @@ capture_core_mt_async(){
 	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
 	#start remote server
 	debug "${FUNCNAME[0]}: method:$1 core:$2 clients:$3 duration:$4 ip:$5 port:$6 object:$7 wrk_stats:$8 additional:$9"
-	${1}_mt_core $2 $3 $4 $5 $6 $7 $9 > $8 &
+	${1}_mt_core $2  $3 $4 $5 $6 ${7} $9 > $8 &
 	debug "${FUNCNAME[0]}: $2 threads with $3 clients started ..."
+}
+
+# PARAMS: 1-method 2-number of threads 3-clients (ie. 64 clients on a single core) 4-duration 5-remote_ip 6-port 7-file_path (starts at root) 8-output file 9-optional argumetns to wrk
+capture_core_mt_async_mf(){
+	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
+	#start remote server
+	debug "${FUNCNAME[0]}: method:$1 core:$2 clients:$3 duration:$4 ip:$5 port:$6 object:$7 wrk_stats:$8 additional:$9"
+	# number of cores is 12
+	wrkrs=${2}
+	cli_per_wrk=$(( $3 / $wrkrs ))
+	td_per_wrk=$(( $2 / $wrkrs ))
+	debug "${FUNCNAME[0]}: Num wrkrs: $wrkrs cli_per_wrk: $cli_per_wrk td_per_wrk: $td_per_wrk"
+	# number of clients >= # threads
+	[ "$cli_per_wrk" -lt "$td_per_wrk" ] && echo "${FUNCNAME[0]} improper number of clients for worker wrks" && exit -1
+	# make sure files are on the DUT
+	for i in $(seq 1 $wrkrs); do
+		gen_file_dut_name $(echo $7 | sed -E -e 's/B//g' -e 's/file_([0-9]+.).txt/\1/g') ${7}f${i}
+	done
+
+	for i in $(seq 1 $wrkrs); do
+		${1}_mt_core  $td_per_wrk $cli_per_wrk $4 $5 $6 ${7}f${i} $9 >> $8 &
+		debug "${FUNCNAME[0]} :${1}_mt_core $cli_per_wrk $td_per_wrk $4 $5 $6 ${7}f${i} $9 >> $8 &"
+	done
 }
 
 # PARAMS: 1-method 2-core (to pin clients) 3-clients (ie. 64 clients on a single core) 4-duration 5-remote_ip 6-port 7-file_path (starts at root) 8-output file 9-optional argumetns to wrk

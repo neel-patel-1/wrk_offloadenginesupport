@@ -424,7 +424,7 @@ sort_pcie_llc_band(){
 	done
 }
 
-#ndeed to be in dir with one files resul only
+
 
 
 sort_mem_band(){
@@ -477,6 +477,7 @@ sort_mem_band(){
 	done
 }
 
+# llc event calc funcs
 sort_cache_access(){
 
 	[ -z "$encs" ] && export encs=( "https"  "http" )
@@ -495,7 +496,7 @@ sort_cache_access(){
 			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
 			for f in "${files[@]}"; do
 				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
-				point=$(python -c "print($point / $dur )") #convert to a rate
+				point=$(python -c "print($point)") #convert to a rate
 				enc_row+=("$point")
 			done
 			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
@@ -527,54 +528,6 @@ sort_cache_access(){
 
 }
 
-ax_mem_band(){
-	[ -z "$encs" ] && export encs=( "https"  "http" )
-	[ -z "$ev" ] && export ev=(  "unc_m_cas_count_rd_0"  "unc_m_cas_count_rd_1" "unc_m_cas_count_wr_0" "unc_m_cas_count_wr_1" )
-
-
-	[ -z "$dur" ] && dur=20
-	[ -z "$perf_time" ] && export perf_time=17
-
-	for e in "${encs[@]}"; do
-		echo "$(basename $(pwd) ),$e"
-
-		for v in "${ev[@]}"; do
-			f_help=${v}
-			enc_row=( "$e" )
-			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
-			for f in "${files[@]}"; do
-				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
-				point=$(python -c "print($point / $dur )") #convert to a rate
-				enc_row+=("$point")
-			done
-			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
-			echo $f_help,$enc_row
-		done
-		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep -e 'band$' ))
-		f_help=band
-		enc_row=( "$e" )
-		for f in "${files[@]}"; do
-			val=$(cat $f)
-			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
-			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 )")
-			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 )")
-				#echo "MBMATCH:${BASH_REMATCH[1]}"
-			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 / 1000 )")
-			else
-				val=${BASH_REMATCH[1]}
-
-			fi
-			enc_row+=("${val}")
-			
-		done
-		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
-		echo $f_help,$enc_row
-	done
-
-}
 
 m_c_a(){
 	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
@@ -591,10 +544,10 @@ m_c_a(){
 }
 
 row_to_col(){
-	m_c_a > rows.txt
 	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
 	[ -z "$encs" ] && export encs=( "https"  "http" )
 	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+	m_c_a > rows.txt
 	for i in "${file_dirs[@]}"; do
 		file_size=$( echo $i | grep -Eo '[0-9]+.' )
 		for enc in "${encs[@]}"; do
@@ -609,13 +562,11 @@ row_to_col(){
 
 
 col_to_gnuplot(){
-	#export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
-	#export file_dirs=( "file_50000K" )
+	[ -z "$dur" ] && dur=10
 	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
 	[ -z "$encs" ] && export encs=( "https"  "http" )
-	#export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
 
-	[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
+	[ -z "$ev" ] && export ev=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
 
 	# get rows.txt and colonize
 	row_to_col
@@ -651,14 +602,154 @@ col_to_gnuplot(){
 	done
 }
 
-find_file_data(){
-	#start at toplev
+# Gbit/s event plotting functions
+sort_cache_access_bit(){
+
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+
+
+	[ -z "$dur" ] && dur=20
+	[ -z "$perf_time" ] && export perf_time=17
+
+	for e in "${encs[@]}"; do
+		echo "$(basename $(pwd) ),$e"
+
+		for v in "${ev[@]}"; do
+			f_help=${v}
+			enc_row=( "$e" )
+			files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep $v ))
+			for f in "${files[@]}"; do
+				point=$( 2>/dev/null single_perf_event_single_file $f $(echo $v | sed -E 's/[^ \t]+\.//g' ))
+				if [ "$v" = "llc_misses.data_read" ]; then
+					point=$(python -c "print($point * 8 / $dur / 1000000000 )") #convert to a Gbit rate
+				else
+					point=$(python -c "print($point * 64 * 8 / $dur / 1000000000 )") #convert to a Gbit rate
+				fi
+				enc_row+=("$point")
+			done
+			enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+			echo $f_help,$enc_row
+		done
+		files=($(ls -1 | grep ${e}_ | sort -k7 -k3 -t_ -V | grep -e 'band$' ))
+		f_help=band
+		enc_row=( "$e" )
+		for f in "${files[@]}"; do
+			val=$(cat $f)
+			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
+			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 )")
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 )")
+				#echo "MBMATCH:${BASH_REMATCH[1]}"
+			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
+				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 / 1000 )")
+			else
+				val=${BASH_REMATCH[1]}
+
+			fi
+			enc_row+=("${val}")
+			
+		done
+		enc_row=$( echo "${enc_row[*]}" | sed 's/ /,/g')
+		echo $f_help,$enc_row
+	done
+
+}
+m_c_a_bit(){
+	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K" )
+	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		[ ! -d "$file_size" ] && echo "No dir for fsize" && return
+		echo $file_size
+		debug "entering $file_size"
+		cd $( echo $i | grep -Eo '[0-9]+.' )
+		sort_cache_access_bit
+		cd ..
+	done
+}
+row_to_col_bit(){
+	[ -z "$file_dirs" ] && export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
+	[ -z "$encs" ] && export encs=( "https"  "http" )
+	[ -z "$ev" ] && export ev=(  "longest_lat_cache.reference"  "longest_lat_cache.miss" "l2_rqsts.all_demand_data_rd" "l2_rqsts.all_demand_miss" )
+	m_c_a_bit > rows.txt
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		for enc in "${encs[@]}"; do
+			#https://unix.stackexchange.com/questions/169995/rows-to-column-conversion-of-file
+			grep -A"$((${#ev[@]} + 1))" -e"${file_size},${enc}\b" rows.txt | awk -F"," 'BEGIN{OFS=","} NR>1{ for (i=1; i<=NF; i++) RtoC[i]= (i in RtoC?RtoC[i] OFS :"") $i; } END{ for (i=1; i<=NF; i++) print RtoC[i] }' > ${file_size}_$enc.all_unsort
+			debug "writing ${file_size}_${enc}.all_sort"
+			head -n 2 ${file_size}_${enc}.all_unsort  > ${file_size}_${enc}.all_sort
+			tail -n +3 ${file_size}_${enc}.all_unsort |  sort -g -k$((${#ev[@]} + 1)) -t, |uniq >> ${file_size}_${enc}.all_sort
+		done
+	done
+}
+llc_gbit_plot(){
 	unset file_dirs
 	unset encs
 	export file_dirs=( $(ls -d */ | sed 's/\///g') )
-	for i in "${dirs[@]}"; do 
-		echo "checking file size $i"; 
-		cd $i
+	export encs=( "https" )
+	export ev=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
+
+	# get rows.txt and colonize
+	row_to_col_bit
+
+	for i in "${file_dirs[@]}"; do
+		debug "${FUNCNAME[0]}: finding encs"; 
 		[ -z "${encs}" ] && export encs=( $(ls -1 | awk -F_ '{print $1}' | uniq | grep -v -e'1' -e'res.txt') )
+		debug "${FUNCNAME[0]}: using ${encs[*]}"; 
 	done
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		echo -n "" > ${file_size}_plot.dat
+		echo "$pl_min"
+
+		for enc in "${encs[@]}"; do
+			echo "#${ev[*]}" >> ${file_size}_plot.dat
+			debug "generating ${file_size}_plot.dat"
+			tail -n +3 ${file_size}_${enc}.all_sort | sed  -e 's/,/ /g' >> ${file_size}_plot.dat
+			echo "" >> ${file_size}_plot.dat
+			echo "" >> ${file_size}_plot.dat
+		done
+	done
+	# data files complete
+	for i in "${file_dirs[@]}"; do
+		file_size=$( echo $i | grep -Eo '[0-9]+.' )
+		ctr=1
+		for e in "${ev[@]}"; do # for each (file_size, event) make a new plot
+			gp_script="set terminal png size 700,500; set output '${i}_${e}.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+			gp_script+="set yr [0:*]; "
+			gp_script+="set title '$(echo "$e" | sed 's/_//g') Bandwidth from Network Bandwidth -- $file_size File '; "
+			gp_script+="set xlabel 'Network Bandwidth (Gbit/s)'; "
+			gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)'; "
+			gp_script+="plot '${file_size}_plot.dat' index 0 using $((${#ev[@]}+1)):$ctr title '${encs[0]}' with linespoints linestyle 1 , "
+			gp_script+="'${file_size}_plot.dat' index 1 using $((${#ev[@]}+1)):$ctr title '${encs[1]}' with linespoints linestyle 2 "
+			debug "making graph for ${i} ${e}"
+			gnuplot -e "${gp_script}"
+			ctr=$(( ctr + 1))
+		done
+	done
+}
+
+
+# 1- array of MB/GB/B/KB's
+sum_band_array(){
+	local -n _b_array=$1
+	GB=0
+	mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
+	for i in "${_b_array[@]}"; do
+		if [[ $i =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
+			val=$(python -c "print(${BASH_REMATCH[1]} / 1024 )")
+		elif [[ $i =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
+			val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 )")
+			#echo "MBMATCH:${BASH_REMATCH[1]}"
+		elif [[ $i =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
+			val=$(python -c "print(${BASH_REMATCH[1]} / 1024 / 1024 / 1024 )")
+		else
+			val=${BASH_REMATCH[1]}
+		fi
+		GB=$( python -c "print( $GB + $val )" )
+	done
+	echo ${GB}
 }

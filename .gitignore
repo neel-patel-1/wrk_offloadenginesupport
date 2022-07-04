@@ -16,3 +16,4 @@ wrk_output
 openssl-*
 *.cpu
 utils/tests/*/*
+broadwell_tests

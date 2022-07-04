@@ -18,11 +18,11 @@ export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 quick_test(){
 	enc=$1
 	kill_wrkrs
-	start_remote_nginx $enc 1
+	start_remote_nginx $enc 10
 	if [ "$enc" = "http" ]; then
-		capture_core_mt_async $1 12 64 10 192.168.1.2 80 file_256K.txt ${1}_band.txt
+		capture_core_mt_async $1 16 1024 10 192.168.1.2 80 file_256K.txt ${1}_band.txt
 	else
-		capture_core_mt_async $1 12 64 10 192.168.1.2 443 file_256K.txt ${1}_band.txt
+		capture_core_mt_async $1 1 1 5 192.168.1.2 443 file_256K.txt ${1}_band.txt
 	fi
 }
 
@@ -242,6 +242,43 @@ llc_core_sweep(){
 
 }
 
+#need to call single_perf that sums multiple files correct 
+llc_con_sweep_mf(){
+	[ -z ${encs} ] && export encs=( "https" "http" )
+	[ -z ${file} ] && export file="file_36608K.txt"
+	[ -z ${s_cores} ] && export s_cores=( "1" )
+	[ -z ${c_cores} ] && export c_cores=( "12" )
+	[ -z ${cons} ] && export cons=( "2" "4" "16" "32" "64" )
+	[ -z ${ev} ] && export ev=(  "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s")
+
+
+	gen_file_dut $file
+	for e in "${encs[@]}"; do
+		core_info="nginx_cores,"
+		for s in "${s_cores[@]}"; do
+			debug "${FUNCNAME[0]}: starting $s core $e nginx server..."
+			start_remote_nginx $e $s
+			for c in "${c_cores[@]}"; do
+				for con in "${cons[@]}"; do
+					kill_wrkrs
+					if [ "$con" -lt "$c" ]; then
+						single_enc_perf_mf $e ev $1 $con $con $file $s
+					else
+						single_enc_perf_mf $e ev $1 $con $c $file $s
+					fi
+
+					core_info+="${s}s_${c}x${con}c,"
+				done
+			done
+		done
+	done
+	echo "file_size:${file}" >> res.txt
+	echo "Cli_Serv_Config,$core_info" >> res.txt
+	total_llc_evict_band >> res.txt
+	return
+
+}
+
 #1-duration
 llc_con_sweep(){
 	[ -z ${encs} ] && export encs=( "https" "http" )
@@ -270,10 +307,6 @@ llc_con_sweep(){
 			done
 		done
 	done
-	echo "file_size:${file}" >> res.txt
-	echo "Cli_Serv_Config,$core_info" >> res.txt
-	total_llc_evict_band >> res.txt
-	return
 
 }
 
@@ -352,14 +385,13 @@ cache_access_multi_file_sweep(){
 file_stat_collect(){ 
 	#export encs=( "https" "http" )
 	export encs=( "https" )
-	#export file_dirs=( "file_64K.txt" "file_256K.txt" "file_36608K.txt" "file_64B.txt"  "file_4K.txt" "file_16K.txt" )
-	export file_dirs=( "file_64K.txt" "file_256K.txt" "file_36608K.txt" "file_64B.txt"  "file_4K.txt" "file_16K.txt" )
+	export file_dirs=( "file_18304K.txt" "file_1024K.txt" )
+	#"file_64K.txt" "file_256K.txt" "file_36608K.txt" "file_64B.txt"  "file_4K.txt" "file_16K.txt" )
 	export dur=10
-	export c_cores=( "12" )
-	export s_cores=( "3" "4" "5" )
+	export c_cores=( "20" )
+	export s_cores=( "19" )
 	#export cons=( "1" "4" "16" "64" "256" "512" "1024" )
-	export cons=( "640" "768" "896" "1024" )
-	#export ev=(  "l2_lines_in.all" "l2_rqsts.miss" "l2_rqsts.references" )
+	export cons=( "24" "48" "96" "144" "196" "256" "512" "792" "1024" )
 	export ev=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
 	#export cns=64
 
@@ -369,9 +401,64 @@ file_stat_collect(){
 		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
 		export file=$f
 		cd $dir
-		llc_con_sweep $dur
+		llc_con_sweep_mf $dur
 		sort_cache_access >> res.txt
 		cd ..
 	done
-	col_to_gnuplot
+	llc_gbit_plot
+	return
+	#col_to_gnuplot
+}
+
+axdimm_multi_serv(){
+	export s_cores=( "1" "2" "5" "10" )
+	export file_sizes=( "file_64K.txt" "file_256K.txt"  "file_4K.txt" "file_16K.txt" )
+	for f_size in "${file_sizes[@]}"; do
+		gen_file_dut $f_size
+		[ ! -d "$(echo $f_size | sed -E -e 's/B//g' -e 's/file_([0-9]+.).txt/\1/g')" ] && mkdir $(echo $f_size | sed -E -e 's/B//g' -e 's/file_([0-9]+.).txt/\1/g')
+		for s in "${s_cores[@]}"; do
+			start_remote_nginx axdimm $s
+			b_file=axdimm_${s}_12_1024_client_${f_size}_server_band
+			capture_core_mt_sync axdimm 12 1024  10 ${remote_ip} 443 ${f_size} $b_file
+		done
+	done
+}
+
+ab_mf_test(){
+	export file_dirs=( "36608K" "4K" "16K" "64K" "256K" )
+	#file_dirs=( "4K" )
+	cons=( "1" "2" "5" "10" )
+	serv=10
+	export ab_events=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
+	export dur=10
+
+	#genURLs
+	for f in "${file_dirs[@]}"; do
+		#nURLs=$(( 1048576 / $( echo $f | grep -Eo '[0-9]+' ) ))
+		nURLs=40
+		[ ! -d "$f" ] && mkdir $f 
+		cd $f
+
+		start_remote_nginx https ${serv}
+
+		debug "generating target URLs"
+		gen_multi_files_dut $f $nURLs
+		echo -n "" > URLs.txt
+		for i in $( seq 1 ${nURLs} ); do
+			echo "https://${remote_ip}:443/file_${f}.txtf${i}" >> URLs.txt
+		done
+
+		for i in "${cons[@]}"; do
+			debug "cat URLs.txt | parallel \"ab -c ${i} -t $dur {}\" > https_file_${f}.txt_${nURLs}_${i}_band_raw 2>/dev/null"
+			cat URLs.txt | parallel "ab -c ${i} -t $dur {}" > https_file_${f}.txt_${nURLs}_${i}_band_raw 2>/dev/null &
+
+			perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events
+			debug "perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events"
+
+			grep Transfer https_file_${f}.txt_${nURLs}_${i}_band_raw | awk '{sum+=$3} END {printf("%fGB", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band
+			debug "grep Transfer https_file_${f}.txt_${nURLs}_${i}_band_raw | awk '{sum+=$3} END {printf(\"%fGB\", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band"
+			wait
+		done
+		cd ../
+	done
 }
