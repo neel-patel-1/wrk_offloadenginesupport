@@ -638,14 +638,14 @@ sort_cache_access_bit(){
 			val=$(cat $f)
 			mb_p='([0-9][0-9]*\.?[0-9]*)(B|KB|MB|GB)'
 			if [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "MB" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 )")
+				val=$(python -c "print(${BASH_REMATCH[1]} * 8 / 1000 )")
 			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "KB" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 )")
+				val=$(python -c "print(${BASH_REMATCH[1]} * 8 / 1000 / 1000 )")
 				#echo "MBMATCH:${BASH_REMATCH[1]}"
 			elif [[ ${val} =~ $mb_p ]] && [[ ${BASH_REMATCH[2]} == "B" ]] ; then
-				val=$(python -c "print(${BASH_REMATCH[1]} / 1000 / 1000 / 1000 )")
+				val=$(python -c "print(${BASH_REMATCH[1]} * 8 / 1000 / 1000 / 1000 )")
 			else
-				val=${BASH_REMATCH[1]}
+				val=$(python -c "print(${BASH_REMATCH[1]} * 8 )")
 
 			fi
 			enc_row+=("${val}")

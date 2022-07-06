@@ -105,6 +105,17 @@ start_remote_nginx(){
 	ssh ${remote_host} $remote_nginx_start $1 $2 2>/dev/null
 }
 
+disable_ht(){
+	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
+	ssh ${remote_host} "echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo"
+}
+
+kill_nginx(){
+	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
+}
+kill_spec(){
+	ssh ${remote_host} ${remote_scripts}/kill_spec.sh
+}
 # kill remote benchmarks and nginx workers
 kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
@@ -132,7 +143,7 @@ remote_qdisc_remove_rule(){
 }
 # kill local wrkrs
 kill_wrkrs() {
-	ps aux | grep -e "wrk" -e "$duration" | awk '{print $2}' | xargs sudo kill -s 2
+	ps aux | grep -e "wrk" | grep -E -e "[0-9]+" | awk '{print $2}' | xargs sudo kill -s 2
 }
 
 #1 - file

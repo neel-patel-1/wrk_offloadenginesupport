@@ -424,41 +424,111 @@ axdimm_multi_serv(){
 	done
 }
 
+#1- number of clients #2 - number of connections
+parallel_ab(){
+	gen_file_dut file_256K.txt
+	for i in $( seq 1 ${1} ); do
+		echo "https://${remote_ip}:443/file_256K.txt" >> URLs.txt
+	done
+	cat URLs.txt | parallel "ab -c 64 -t 5 {}" > test_ab.out 2>/dev/null
+	grep Transfer test_ab.out | awk '{sum+=$3} END {printf("%fGB", (sum / 1024 / 1024)); }' | tee test_ab.band
+}
 ab_mf_test(){
 	export file_dirs=( "36608K" "4K" "16K" "64K" "256K" )
 	#file_dirs=( "4K" )
-	cons=( "1" "2" "5" "10" )
+	cons=( "1" "2" "5" "10" "20" "30" "40" "50" "60" "70" "100" "120" "130" "140" "150" "200" "300" "400" "500" "600" "700" "800" "900" "1000" )
+	#urlsns=( "2" "5" "10" "20" "30" "40" )
+	urlsns=( "40" )
+
 	serv=10
 	export ab_events=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
 	export dur=10
 
 	#genURLs
-	for f in "${file_dirs[@]}"; do
-		#nURLs=$(( 1048576 / $( echo $f | grep -Eo '[0-9]+' ) ))
-		nURLs=40
-		[ ! -d "$f" ] && mkdir $f 
-		cd $f
+	for urls in "${urlsns[@]}"; do
+		for f in "${file_dirs[@]}"; do
+			#nURLs=$(( 1048576 / $( echo $f | grep -Eo '[0-9]+' ) ))
+			nURLs=$urls
+			[ ! -d "$f" ] && mkdir $f 
+			cd $f
 
-		start_remote_nginx https ${serv}
+			start_remote_nginx https ${serv}
 
-		debug "generating target URLs"
-		gen_multi_files_dut $f $nURLs
-		echo -n "" > URLs.txt
-		for i in $( seq 1 ${nURLs} ); do
-			echo "https://${remote_ip}:443/file_${f}.txtf${i}" >> URLs.txt
+			debug "generating target URLs"
+			gen_multi_files_dut $f $nURLs
+			echo -n "" > URLs.txt
+			for i in $( seq 1 ${nURLs} ); do
+				echo "https://${remote_ip}:443/file_${f}.txtf${i}" >> URLs.txt
+			done
+
+			for i in "${cons[@]}"; do
+				debug "cat URLs.txt | parallel \"ab -c ${i} -t $dur {}\" > https_file_${f}.txt_${nURLs}_${i}_band_raw 2>/dev/null"
+				cat URLs.txt | parallel "ab -c ${i} -t $dur {}" > https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band_raw 2>/dev/null &
+
+				perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events
+				debug "perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events"
+
+				wait
+				grep Transfer https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band_raw | awk '{sum+=$3} END {printf("%fGB", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band
+				echo ""
+				debug "grep Transfer https_file_${f}.txt_${nURLs}_${i}_band_raw | awk '{sum+=$3} END {printf(\"%fGB\", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band"
+			done
+			cd ../
 		done
-
-		for i in "${cons[@]}"; do
-			debug "cat URLs.txt | parallel \"ab -c ${i} -t $dur {}\" > https_file_${f}.txt_${nURLs}_${i}_band_raw 2>/dev/null"
-			cat URLs.txt | parallel "ab -c ${i} -t $dur {}" > https_file_${f}.txt_${nURLs}_${i}_band_raw 2>/dev/null &
-
-			perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events
-			debug "perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events"
-
-			grep Transfer https_file_${f}.txt_${nURLs}_${i}_band_raw | awk '{sum+=$3} END {printf("%fGB", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band
-			debug "grep Transfer https_file_${f}.txt_${nURLs}_${i}_band_raw | awk '{sum+=$3} END {printf(\"%fGB\", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band"
-			wait
-		done
-		cd ../
 	done
+	llc_gbit_plot
+}
+
+#1- number of clients #2 - number of connections #3- file size
+parallel_ab(){
+	gen_file_dut file_$3.txt
+	for i in $( seq 1 ${1} ); do
+		echo "https://${remote_ip}:443/file_$3.txt" >> URLs.txt
+	done
+	cat URLs.txt | parallel "ab -c ${2} -t 10 {}" > test_ab.out 2>/dev/null
+	grep Transfer test_ab.out | awk '{sum+=$3} END {printf("%fGB", (sum * 8 / 1024 / 1024)); }' | tee test_ab.band
+}
+ab_mf_test_pt(){
+	export file_dirs=( "256K" )
+	#file_dirs=( "4K" )
+	cons=( "500" )
+	urlsns=( "40" )
+
+	serv=10
+	export ab_events=(  "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read" "offcore_response.all_reads.llc_miss.local_dram"  )
+	export dur=10
+
+	#genURLs
+	for urls in "${urlsns[@]}"; do
+		for f in "${file_dirs[@]}"; do
+			#nURLs=$(( 1048576 / $( echo $f | grep -Eo '[0-9]+' ) ))
+			nURLs=$urls
+			[ ! -d "$f" ] && mkdir $f 
+			cd $f
+
+			start_remote_nginx https ${serv}
+
+			debug "generating target URLs"
+			gen_multi_files_dut $f $nURLs
+			echo -n "" > URLs.txt
+			for i in $( seq 1 ${nURLs} ); do
+				echo "https://${remote_ip}:443/file_${f}.txtf${i}" >> URLs.txt
+			done
+
+			for i in "${cons[@]}"; do
+				debug "cat URLs.txt | parallel \"ab -c ${i} -t $dur {}\" > https_file_${f}.txt_${nURLs}_${i}_band_raw 2>/dev/null"
+				cat URLs.txt | parallel "ab -c ${i} -t $dur {}" > https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band_raw 2>/dev/null &
+
+				perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events
+				debug "perfmon_sys_upd $(( $dur - $dur / 6 )) https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_$( echo "${ab_events[*]}" | sed 's/ /_/g') ab_events"
+
+				wait
+				grep Transfer https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band_raw | awk '{sum+=$3} END {printf("%fGB", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band
+				echo ""
+				debug "grep Transfer https_file_${f}.txt_${nURLs}_${i}_band_raw | awk '{sum+=$3} END {printf(\"%fGB\", (sum / 1024 / 1024)); }' | tee https_file_${f}.txt_${nURLs}_${i}_client_${serv}_server_band"
+			done
+			cd ../
+		done
+	done
+	llc_gbit_plot
 }
