@@ -42,7 +42,7 @@ kill_switchd(){
 #1 - program to compile on switch
 compile_switch(){
 	[ -z "$1" ] && echo "${FUNCNAME[0]}: missing params"
-	ssh ${tna_host} <<runconfig
+	ssh ${tna_host} <<-runconfig
 		${tna_sde}/pkgsrc/p4-build/configure \
  		--prefix=${tna_sde}/install \
 		--with-p4c=/usr/system/src/bf-sde-9.4.0/pkgsrc/p4-compilers/p4c-9.4.0.x86_64/bin/bf-p4c \
@@ -108,6 +108,10 @@ start_remote_nginx(){
 disable_ht(){
 	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
 	ssh ${remote_host} "echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo"
+}
+
+enable_perf(){
+	ssh ${remote_host} "echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid"
 }
 
 kill_nginx(){

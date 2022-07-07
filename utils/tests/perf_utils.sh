@@ -2,9 +2,9 @@
 export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
 source $WRK_ROOT/vars/env.src
 
-source ${test_dir}/parse_utils.sh
-source ${test_dir}/core_utils.sh
-source ${test_dir}/remote_utils.sh
+#source ${test_dir}/parse_utils.sh
+#source ${test_dir}/core_utils.sh
+#source ${test_dir}/remote_utils.sh
 
 #### PERF UTILS ###
 

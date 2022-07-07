@@ -5,7 +5,7 @@ source ${test_dir}/core_utils.sh
 source ${test_dir}/perf_utils.sh
 source ${test_dir}/plot_utils.sh
 source ${test_dir}/debug_utils.sh
-source ${test_dir}/remote_utils.sh
+#source ${test_dir}/remote_utils.sh
 
 export res_dir=${WRK_ROOT}/results
 
@@ -20,9 +20,11 @@ quick_test(){
 	kill_wrkrs
 	start_remote_nginx $enc 10
 	if [ "$enc" = "http" ]; then
-		capture_core_mt_async $1 16 1024 10 192.168.1.2 80 file_256K.txt ${1}_band.txt
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} 80 file_256K.txt ${1}_band.txt"
+		capture_core_mt_async $1 16 1024 10 ${remote_ip} 80 file_256K.txt ${1}_band.txt
 	else
-		capture_core_mt_async $1 1 1 5 192.168.1.2 443 file_256K.txt ${1}_band.txt
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} 443 file_256K.txt ${1}_band.txt"
+		capture_core_mt_async $1 16 1024 20 ${remote_ip} 443 file_256K.txt ${1}_band.txt
 	fi
 }
 
@@ -335,28 +337,6 @@ llc_multi_file_sweep(){
 	done
 }
 
-mem_multi_file(){ #mem_band
-	export encs=( "https" "http" )
-	export file_dirs=( "file_128K.txt" "file_36608K.txt" "file_40000K.txt" "file_50000K.txt" )
-	#export file_dirs=( "file_64K.txt"  )
-	export dur=20
-	export c_cores=( "1" "2" "5" "10" "12" )
-	export s_cores=( "1" "2" "5" "10" )
-	export ev=(  "unc_m_cas_count.rd"  "unc_m_cas_count.wr" "unc_cha_llc_victims.total_e"  "unc_cha_llc_victims.total_f"  "unc_cha_llc_victims.total_m"  "unc_cha_llc_victims.total_s" )
-	export cns=64
-
-	
-	for f in "${file_dirs[@]}"; do
-		dir=$(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
-		mkdir $(echo $f | sed -E 's/file_([0-9]+.).txt/\1/g')
-		export file=$f
-		cd $dir
-		llc_core_sweep $dur
-		sort_mem_band >> res.txt
-		cd ..
-	done
-	col_to_gnuplot
-}
 
 #EVICT BAND
 cache_access_multi_file_sweep(){ 
@@ -531,4 +511,21 @@ ab_mf_test_pt(){
 		done
 	done
 	llc_gbit_plot
+}
+
+#1 - enc
+mbm_test(){
+	con=( "16" "64" "256" "1024" )
+	encs=( "http" "https" )
+	for e in "${encs[@]}"; do
+		start_remote_nginx $e 10
+		for i in "${con[@]}"; do
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 16 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
+			capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		done
+	done
 }

@@ -753,3 +753,12 @@ sum_band_array(){
 	done
 	echo ${GB}
 }
+mb_parse(){
+	for i in *.mem; do
+		n_file=$( echo $i | sed 's/\.mem/.band/'
+		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		GB=$( sum_band_array tot )
+		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+		echo "$(cat$( echo $i | sed 's/.mem//g '),
+	done
+}

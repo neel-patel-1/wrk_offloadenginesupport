@@ -4,6 +4,7 @@ source $WRK_ROOT/vars/env.src
 source $WRK_ROOT/vars/environment.src
 
 source ${test_dir}/debug_utils.sh
+
 # SINGLE CORE METHOD FUNCTIONS #
 # PARAMS: 1-core (to pin clients) 2-clients (ie. 64 clients on a single core) 3-duration 4-remote_ip 5-port 6-file_path (starts at root)
 # OPTIONAL PARAMS: 7-additional wrk options

@@ -57,6 +57,7 @@ spec_back_cores(){
 # start spec benches on individual cores on the remote host
 # 1- test 2-number of spec cores 3-events 4-system_wide events
 spec_back_cores_cli_sampling(){
+	enable_perf
 	debug "${FUNCNAME[0]}: ssh ${remote_host} ${remote_spec} --config=testConfig --action build $1"
 	ssh ${remote_host} ${remote_spec} --config=testConfig --action build $1 | tee spec_build.cpu >/dev/null
 	for c in `seq 1 $(( $2 - 1 ))`; do
@@ -81,7 +82,7 @@ spec_back_cores_cli_sampling(){
 	debug "${FUNCNAME[0]}:Waiting for benchmark to start"
 	while [ "1" ]; do 
 		echo -n "."
-		if [ ! -z "$( grep -qe "Running Benchmarks" ${1}_spec_core_$(( c )).cpu )" ]; then
+		if [ ! -z "$( grep "Running Benchmarks" ${1}_spec_core_$(( c )).cpu )" ]; then
 			debug "${FUNCNAME[0]}: bench started "
 			break
 		fi
@@ -94,7 +95,7 @@ spec_back_cores_cli_sampling(){
 		debug "${FUNCNAME[0]}: ssh ${remote_host} taskset --cpu-list 19 \"${remote_ocperf} ${s_com} \" 2>sys_wide_stats_${ctr}.txt 1>/dev/null"
 		ssh ${remote_host} "taskset --cpu-list 19 ${remote_ocperf} ${s_com} " 2>sys_wide_stats_${ctr}.txt 1>/dev/null
 		ctr=$(( $ctr + 1 ))
-		if [ ! -z "$( grep -qe "runcpu finished" $1_spec_core_$(( c )).cpu)"  ]; then
+		if [ ! -z "$( grep "runcpu finished" $1_spec_core_$(( c )).cpu)"  ]; then
 			debug "${FUNCNAME[0]}: runcpu completed... removing last (possibly inaccurate) measurements..."
 			rm -rf sys_wide_stats_${ctr}.txt cpu_util_breakdown_${ctr}.txt
 			break
@@ -114,12 +115,13 @@ nginx_back(){
 	kill_nginx
 	kill_wrkrs
 	start_remote_nginx ${1} ${2}
-	capture_core_mt_async ${1} 16 1024 1h ${remote_ip} $( getport ${2} ) file_256K.txt ${1}_file_256K.txt_16_1024_client_${2}_server_band_raw
+	capture_core_mt_async ${1} 16 1024 1h ${remote_ip} $( getport ${1} ) file_256K.txt ${1}_file_256K.txt_16_1024_client_${2}_server_band_raw
 }
 
 nginx_spec(){
 	export encs=( "http" )
 	export tests=( "505.mcf_r" "520.omnetpp_r" "531.deepsjeng_r" )
+	#export tests=( "505.mcf_r" )
 	export c_nums=( "2" )
 	export proc_events=(  "l2_rqsts.demand_data_rd_miss" "l2_rqsts.demand_data_rd_hit"  )
 	export sys_events=( "unc_m_cas_count.rd" "unc_m_cas_count.wr" "llc_misses.data_read"  )
