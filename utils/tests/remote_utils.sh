@@ -91,7 +91,6 @@ rebuild_l2(){
 	start_default_switch
 }
 
-
 # 1 - size of file to check for in nginx root dirs
 # 2 - remote host
 # 3 - remote nginx_script directory
@@ -104,27 +103,30 @@ remote_file(){
 start_remote_nginx(){
 	ssh ${remote_host} $remote_nginx_start $1 $2 2>/dev/null
 }
+return
 
+kill_nginx(){
+	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
+}
+
+kill_spec(){
+	ssh ${remote_host} ${remote_scripts}/kill_spec.sh
+}
 disable_ht(){
 	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
-	ssh ${remote_host} "echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo"
+	ssh ${remote_host} "echo \"1\" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo"
 }
 
 enable_perf(){
 	ssh ${remote_host} "echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid"
 }
 
-kill_nginx(){
-	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
-}
-kill_spec(){
-	ssh ${remote_host} ${remote_scripts}/kill_spec.sh
-}
 # kill remote benchmarks and nginx workers
 kill_procs(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
 	ssh ${remote_host} ${remote_scripts}/kill_spec.sh
 }
+
 
 #1 - drop rate to add to remote 
 remote_qdisc_drop_rule(){
@@ -169,3 +171,4 @@ no_ht(){
 	echo off | sudo tee /sys/devices/system/cpu/smt/control
 	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
 }
+

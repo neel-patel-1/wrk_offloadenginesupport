@@ -754,11 +754,64 @@ sum_band_array(){
 	echo ${GB}
 }
 mb_parse(){
-	for i in *.mem; do
-		n_file=$( echo $i | sed 's/\.mem/.band/'
-		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
-		GB=$( sum_band_array tot )
+	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
+	for i in "${cli_sort[@]}"; do
+		con=$( echo $i | grep -Eo '[0-9]+' )
+		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
+		tot=( $( cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+
+		#tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
 		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
-		echo "$(cat$( echo $i | sed 's/.mem//g '),
-	done
+		echo $con $mem_band $tot
+	done | sort -g | tee plot.dat
+	echo "parsing"
+	gp_script="set terminal png size 700,500; set output 'mbm_cli_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+	gp_script+="set yr [0:*]; "
+	gp_script+="set title 'Memory Bandwidth Bandwidth from Network Bandwidth  '; "
+	gp_script+="set xlabel 'Number of Connections '; "
+	gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)'; "
+	gp_script+="plot 'plot.dat' title 'Memory Bandwidth' with linespoints linestyle 1 , "
+	debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
+	debug "making graph for ${e}"
+
+	for i in *.mem; do
+		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
+		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		GBit=$( python -c "print ( $( sum_band_array tot ) * 8 )")
+		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+		echo $GBit $mem_band
+	done | sort -g | tee plot.dat
+	gp_script="set terminal png size 700,500; set output 'mbm_mem_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+	gp_script+="set yr [0:*]; "
+	gp_script+="set title 'Memory Bandwidth Bandwidth from Network Bandwidth  '; "
+	gp_script+="set xlabel 'Network Bandwidth (Gbit/s)'; "
+	gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)'; "
+	gp_script+="plot 'plot.dat' title 'Memory Bandwidth' with linespoints linestyle 1 , "
+	debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
+	debug "making graph for ${e}"
+}
+
+mb_parse(){
+	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
+	for i in "${cli_sort[@]}"; do
+		con=$( echo $i | grep -Eo '[0-9]+' )
+		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
+		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		totNum=$( python -c "print ( 8  * $( echo $tot | grep -Eo  '[0-9]+\.?[0-9]*') )" )
+		totP=$( echo $tot | grep -Eo  '[A-Z][A-Z]?' )it/s
+		#tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+		echo $con $mem_band $totNum$totP
+	done | sort -g | tee plot.dat
+	echo "parsing"
+	gp_script="set terminal png size 700,500; set output 'mbm_cli_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+	gp_script+="set yr [0:*]; "
+	gp_script+="set title 'Memory Bandwidth Bandwidth from Network Bandwidth  '; "
+	gp_script+="set xlabel 'Number of Connections '; "
+	gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)'; "
+	gp_script+="plot 'plot.dat' title 'Memory Bandwidth' with linespoints linestyle 1 , "
+	debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
 }
