@@ -17,3 +17,8 @@ openssl-*
 *.cpu
 utils/tests/*/*
 broadwell_tests
+/vivado*
+/.Xil
+1
+/spec_out
+/wrk

@@ -382,7 +382,6 @@ file_stat_collect(){
 		cd ..
 	done
 	llc_gbit_plot
-	return
 	#col_to_gnuplot
 }
 
@@ -409,6 +408,7 @@ parallel_ab(){
 	cat URLs.txt | parallel "ab -c 64 -t 5 {}" > test_ab.out 2>/dev/null
 	grep Transfer test_ab.out | awk '{sum+=$3} END {printf("%fGB", (sum / 1024 / 1024)); }' | tee test_ab.band
 }
+
 ab_mf_test(){
 	export file_dirs=( "36608K" "4K" "16K" "64K" "256K" )
 	#file_dirs=( "4K" )
@@ -509,79 +509,95 @@ ab_mf_test_pt(){
 	llc_gbit_plot
 }
 
-#1 - enc
+#1 - enc 2 - file
 mbm_test(){
-	encs=( "https" )
+	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing param" && return
+	e=$1
+	file=$2
+	start_remote_nginx $e 10
+	con=( "1" "2" "3" "4" )
+	for i in "${con[@]}"; do
+		if [ ! -f "${e}_${i}_band.txt" ]; then
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 1 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
+			capture_core_mt_async $e 1 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		fi
+	done
+	con=( "4" "16" "64" )
+	for i in "${con[@]}"; do
+		if [ ! -f "${e}_${i}_band.txt" ]; then
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
+			capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		fi
+	done
+	con=( "76" "88" "100" )
+	for i in "${con[@]}"; do
+		if [ ! -f "${e}_${i}_band.txt" ]; then
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
+			capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		fi
+	done
+	con=( "110" "120" "130" )
+	for i in "${con[@]}"; do
+		if [ ! -f "${e}_${i}_band.txt" ]; then
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
+			capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		fi
+	done
+	con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
+	for i in "${con[@]}"; do
+		if [ ! -f "${e}_${i}_band.txt" ]; then
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
+			capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		fi
+	done
+	con=( "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
+	for i in "${con[@]}"; do
+		if [ ! -f "${e}_${i}_band.txt" ]; then
+			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
+			capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
+			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			wait
+			scp ${remote_host}:${e}_${i}.mem .
+		fi
+	done
+	
+}
+
+multi_file_mbm(){
+	files=( "file_4K.txt" "file_16K.txt" "file_64K.txt" "file_36608K.txt" "file_256K.txt" )
+	encs=( "http" "https" )
+
 	for e in "${encs[@]}"; do
-		start_remote_nginx $e 10
-		con=( "1" "2" "3" "4" )
-		for i in "${con[@]}"; do
-			if [ ! -f "${e}_${i}_band.txt" ]; then
-				debug "${FUNCNAME[0]}: capture_core_mt_async $e 1 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
-				capture_core_mt_async $e 1 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
-				debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-				ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-				wait
-				scp ${remote_host}:${e}_${i}.mem .
-			fi
-		done
-		con=( "4" "16" "64" )
-		for i in "${con[@]}"; do
-			if [ ! -f "${e}_${i}_band.txt" ]; then
-				debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
-				capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
-				debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-				ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-				wait
-				scp ${remote_host}:${e}_${i}.mem .
-			fi
-		done
-		con=( "76" "88" "100" )
-		for i in "${con[@]}"; do
-			if [ ! -f "${e}_${i}_band.txt" ]; then
-				debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
-				capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
-				debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-				ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-				wait
-				scp ${remote_host}:${e}_${i}.mem .
-			fi
-		done
-		con=( "110" "120" "130" )
-		for i in "${con[@]}"; do
-			if [ ! -f "${e}_${i}_band.txt" ]; then
-				debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
-				capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
-				debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-				ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-				wait
-				scp ${remote_host}:${e}_${i}.mem .
-			fi
-		done
-		con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
-		for i in "${con[@]}"; do
-			if [ ! -f "${e}_${i}_band.txt" ]; then
-				debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
-				capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
-				debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-				ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-				wait
-				scp ${remote_host}:${e}_${i}.mem .
-			fi
-		done
-		con=( "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
-		for i in "${con[@]}"; do
-			if [ ! -f "${e}_${i}_band.txt" ]; then
-				debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) file_256K.txt ${e}_${i}_band.txt"
-				capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) file_256K.txt ${e}_${i}_band.txt
-				debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-				ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-				wait
-				scp ${remote_host}:${e}_${i}.mem .
+		for f in "${files[@]}"; do
+			if [ ! -d "${e}_${f}" ]; then
+				mkdir ${e}_${f}
+				cd ${e}_${f}
+				mbm_test $e $f 
+				cd ../
 			fi
 		done
 	done
 
-	
-	
 }
+

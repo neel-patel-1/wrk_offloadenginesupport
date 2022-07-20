@@ -797,13 +797,73 @@ mb_parse(){
 	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
 	for i in "${cli_sort[@]}"; do
 		con=$( echo $i | grep -Eo '[0-9]+' )
+		#net band parse
+		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
+		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		[ -z "$tot" ] && continue
+		totNum=$( python -c "print ( 8  * $( echo $tot | grep -Eo  '[0-9]+\.?[0-9]*') )" )
+		totP=$( echo $tot | grep -Eo  '[A-Z][A-Z]?' )
+		mb_p='(B|KB|MB|GB)'
+		if [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "MB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "KB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "B" ]] ; then
+			totP=$(python -c "print(${totNum} / 1024 / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "GB" ]] ; then
+			totP=${totP}
+		else
+			echo "${FUNCNAME[0]}: could not find unit: ${totP}" && return -1
+
+		fi
+		totP=Gbit/s
+
+		#mem_band parse
+		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+		echo $con $mem_band $totNum
+	done | sort -g | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+	echo "parsing"
+	gp_script="set terminal png size 700,500; set output '$(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_mbm_cli_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+	gp_script+="set yr [0:*]; "
+	gp_script+="set title 'Memory and Network Bandwidths (Gbit/s) vs. Total Connections  '; "
+	gp_script+="set xlabel 'Number of Connections '; "
+	gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)' tc lt 1; "
+	gp_script+="set y2label 'Network Bandwidth (Gbit/s)' tc lt 2; "
+	gp_script+="plot '$(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat' using 1:2 title 'Memory Bandwidth' with linespoints linestyle 1 , "
+	gp_script+=" '$(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat' using 1:3 title 'Network Bandwidth' with linespoints linestyle 2 "
+	debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
+}
+
+
+
+mb_http_s_comp(){
+	https_dir=$( basename $(pwd) | sed -e 's/http_/https_/g' )
+	cli_sort=( $(ls -d http*.mem | sort -t_ -k2 -g) )
+	for i in "${cli_sort[@]}"; do
+		con=$( echo $i | grep -Eo '[0-9]+' )
+		#net band parse
 		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
 		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
 		totNum=$( python -c "print ( 8  * $( echo $tot | grep -Eo  '[0-9]+\.?[0-9]*') )" )
 		totP=$( echo $tot | grep -Eo  '[A-Z][A-Z]?' )it/s
-		#tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+
+		#mem_band parse
 		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
-		echo $con $mem_band $totNum$totP
+
+		https_file=$( echo "$i" | sed -e 's/http_/https_/g' )
+
+		#https net band parse
+		https_n_file=$( echo "../${https_dir}/${https_file}" | sed -e 's/\.mem/_band.txt/' )
+		https_tot=( $(cat $https_n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		echo ${https_tot}
+		https_totNum=$( python -c "print ( 8  * $( echo "$https_tot" | grep -Eo  '[0-9]+\.?[0-9]*') )" )
+		https_totP=$( echo $https_tot | grep -Eo  '[A-Z][A-Z]?' )it/s
+
+		#https mem_band parse
+		https_mem_band=$(cat ${https_n_file} | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+
+		echo $con $mem_band $totNum$totP ${https_mem_band} ${https_totNum}${https_totP}
 	done | sort -g | tee plot.dat
 	echo "parsing"
 	gp_script="set terminal png size 700,500; set output 'mbm_cli_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
@@ -814,4 +874,42 @@ mb_parse(){
 	gp_script+="plot 'plot.dat' title 'Memory Bandwidth' with linespoints linestyle 1 , "
 	debug "gnuplot -e \"${gp_script}\""
 	gnuplot -e "${gp_script}"
+
 }
+
+remote_dram_parse(){
+	files=( $(ls  */*.csv | sort -t_ -g -k2) )
+	addr=0x100000000
+	tokens=$( LC_CTYPE=C printf "%x%x%x%x%x" $(printf '%d' "'o" ) $(printf '%d' "'l" ) $(printf '%d' "'l" ) $(printf '%d' "'e" ) $(printf '%d' "'h" ) )
+	echo "PhysAddr,BG,BA,COL,ROW"
+	for i in "${files[@]}";
+	do 
+		file=$( echo $i | grep -Eo '[0-9]+' )
+		bits=$( grep $tokens $i | awk -F, '{print $8}' )
+		data=$( grep $tokens $i | awk -F, '{print $12}'| grep -Eo "((3[0-9])|0A)+$tokens" )
+		[ -z "$data" ] && continue
+		iter=$( echo $data | grep -Eo "((3[0-9])|0A)+" | head -n 1 )
+		hex_off=0
+		digits=($( echo $iter | sed -E 's/(..)/\1 /g'))
+		ctr=0
+		interval=""
+		for d in "${digits[@]}"; do
+			r_d=$(( 0x$d - 0x30 ))
+			interval+=$r_d
+			hex_off=$( printf "0x%X" $(( hex_off  + $(( $r_d * $(( 16 ** ctr )) ))  )) )
+			ctr=$(( ctr +  1 ))
+			#echo $hex_off
+		done
+		#>&2 echo "$(echo $interval | rev)"
+		hex_add=$(( hex_off * 64 ))
+
+		col=$( echo $bits | cut -b 22-31)
+		row=$( echo $bits | cut -b 5-21)
+		ba=$( echo $bits | cut -b 3-4)
+		bgr=$( echo $bits | cut -b 1-2)
+		echo "\"$(printf "0x%X\n" $(($addr + $hex_add)) )\",\"$bgr\",\"$ba\",\"$col\",\"$row\"";
+		ctr=$(( ctr + 1 ))
+		#addr=$(echo "ibase=16; obase=16; $addr + $hex_off " | bc )
+	done | sort -g -k1 -t,
+}
+
