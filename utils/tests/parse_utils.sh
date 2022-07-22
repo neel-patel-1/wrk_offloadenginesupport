@@ -793,6 +793,45 @@ mb_parse(){
 	debug "making graph for ${e}"
 }
 
+#1 - wrk file
+Gbit_from_wrk(){
+		tot=( $(cat $1 | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		totNum=$( python -c "print ( 8  * $( echo $tot | grep -Eo  '[0-9]+\.?[0-9]*') )" )
+		totP=$( echo $tot | grep -Eo  '[A-Z][A-Z]?' )
+		mb_p='(B|KB|MB|GB)'
+		if [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "MB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "KB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "B" ]] ; then
+			totP=$(python -c "print(${totNum} / 1024 / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "GB" ]] ; then
+			totP=${totP}
+		else
+			echo "${FUNCNAME[0]}: could not find unit: ${totP}" && return -1
+
+		fi
+		totP=Gbit/s
+		echo $totNum
+}
+
+average_discard_outliers(){
+	variables=10
+	local -n _avgs=$1
+	python - <<-____HERE
+	import numpy as np
+	def reject_outliers(data, m = 2.):
+	    d = np.abs(data - np.median(data))
+	    mdev = np.median(d)
+	    s = d/mdev if mdev else 0.
+	    return data[s<m]
+
+	vals=np.array([ $(echo ${_avgs[*]} | sed 's/ /,/g' ) ], dtype=float)
+	nvals=reject_outliers(vals)
+	print(np.average(nvals))
+	____HERE
+}
+
 mb_parse(){
 	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
 	for i in "${cli_sort[@]}"; do
@@ -809,7 +848,7 @@ mb_parse(){
 		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "KB" ]] ; then
 			totNum=$(python -c "print(${totNum} / 1024 / 1024 )")
 		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "B" ]] ; then
-			totP=$(python -c "print(${totNum} / 1024 / 1024 / 1024 )")
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 / 1024 )")
 		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "GB" ]] ; then
 			totP=${totP}
 		else
@@ -913,3 +952,31 @@ remote_dram_parse(){
 	done | sort -g -k1 -t,
 }
 
+config_parse(){
+	configs=( "https" "ktls" "axdimm" "http" )
+	configs=( "ktls" "axdimm" ) 
+	if [ ! -f "comp.dat" ]; then
+	echo "#comparing band cpu util memory bandwidth for varying connections" | tee comp.dat
+		for config in "${configs[@]}"; do
+			for i in "$( ls *+([0-9]).txt | sort -t_ -k2 -g)"; 
+			do 
+				cat $i | grep -E '[0-9]+'; 
+			done | grep -vE "(Gbit|WARN|error)" | grep $config 
+			echo ""
+		done |  tee -a comp.dat
+	fi
+	gp_script="set terminal png size 700,500; set output 'mem_band_comp.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
+	gp_script+="set style line 3 linecolor rgb '#0060ad' linetype 17 linewidth 2  pointtype 7 pointsize 1.5; "
+	gp_script+="set style line 4 linecolor rgb '#dd181f' linetype 17 linewidth 2  pointtype 7 pointsize 1.5; "
+	gp_script+="set yr [0:*]; "
+	gp_script+="set title 'Memory and Network Bandwidths (Gbit/s) vs. Total Connections  '; "
+	gp_script+="set xlabel 'Number of Connections '; "
+	gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)' tc lt 1; "
+	gp_script+="set y2label 'Network Bandwidth (Gbit/s)' tc lt 2; "
+	gp_script+="plot 'comp.dat' index 0 using 2:3 title 'KTLS Network Bandwidth' with linespoints linestyle 1 , "
+	gp_script+="'comp.dat' index 1 using 2:3 title 'SmartDIMM Network Bandwidth' with linespoints linestyle 2 , "
+	gp_script+=" 'comp.dat' index 0 using 2:4 title 'KTLS Memory Bandwidth' with linespoints linestyle 3 , "
+	gp_script+=" 'comp.dat' index 1 using 2:4 title 'SmartDIMM Memory Bandwidth' with linespoints linestyle 4 "
+	debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
+}
