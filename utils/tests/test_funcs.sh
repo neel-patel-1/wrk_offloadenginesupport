@@ -33,7 +33,7 @@ quick_test(){
 #start a quick test
 quick_cpu_test(){
 	enc=$1
-	dur=5
+	dur=30
 	s_cores=10
 	[ -z "$2" ] && return
 	kill_wrkrs
@@ -46,21 +46,24 @@ quick_cpu_test(){
 		capture_core_mt_async $1 12 $2 $dur ${remote_ip} 443 file_256K.txt ${1}_band.txt
 	fi
 
-	debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o ${enc}_${2}.mem -m 'mbl:1-${s_cores};'\""
 	cpu_utils=( )
 	for i in `seq 0 $(( dur / 5 )) $(( dur - $(( dur / 5)) ))`; do
 		sleep $(( $dur / 5 ))
 		debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'\""
-		ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'"
+		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" )" )
 	done
 	wait
-	Gbit_from_wrk ${1}_band.txt
+	file=${1}_${2}con_${dur}sec.out
+	echo -n "cpu:" | tee $file
+	echo $(average_discard_outliers cpu_utils) | tee -a $file
+	echo -n "bandwidth:" | tee -a $file
+	echo $(Gbit_from_wrk ${1}_band.txt) | tee -a $file
 }
 
 #start a quick test 1-enc 2-cons 3-cli_cores
 enc_cpu_mem_test(){
 	enc=$1
-	dur=20
+	dur=30
 	s_cores=10
 	[ -z "$3" ] && return
 	kill_wrkrs
@@ -69,7 +72,7 @@ enc_cpu_mem_test(){
 		debug "${FUNCNAME[0]}: capture_core_mt_async $1 $3 $2 $dur ${remote_ip} 443 file_256K.txt ${1}_band.txt"
 		capture_core_mt_async $1 $3 $2 $dur ${remote_ip} 80 file_256K.txt ${1}_band.txt
 	else
-		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 $2 $dur ${remote_ip} 443 file_256K.txt ${1}_band.txt"
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 $3 $2 $dur ${remote_ip} 443 file_256K.txt ${1}_band.txt"
 		capture_core_mt_async $1 $3 $2 $dur ${remote_ip} 443 file_256K.txt ${1}_band.txt
 	fi
 
@@ -79,7 +82,6 @@ enc_cpu_mem_test(){
 	for i in `seq 1 $(( dur / 5 )) $(( dur - $(( dur / 5)) ))`; do
 		sleep $(( $dur / 5 ))
 		debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'\""
-		#ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'"
 		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" )" )
 	done
 	wait
@@ -89,7 +91,6 @@ enc_cpu_mem_test(){
 	band=$( Gbit_from_wrk ${1}_band.txt )
 	echo "${enc} ${2} ${band} ${avg_cpu} ${mem_band}"
 }
-
 
 #Start a quick test using variables specified in config file
 #Fails if any variables are unset
@@ -663,81 +664,121 @@ multi_file_mbm(){
 
 }
 
+# 1 - encs
 comp_configs(){
 
-	encs=( "axdimm" "ktls" "https" "http" )
-	for enc in "${encs[@]}"; do
-		con=( "1" "2" "3" "4" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 1 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "4" "16" "64" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "76" "88" "100" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
-			fi
-		done
+	enc=$1
+	con=( "1" "2" "3" "4" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 1 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=( "4" "16" "64" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=( "76" "88" "100" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=( "1148" "1400" "1500" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+		fi
+	done
 
+}
+# 1 - encs
+comp_configs_short(){
+
+	enc=$1
+	con=(  "2"   )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 1 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=( "4" "16" "64" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=(   "256"  "512"  "1024" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+		fi
+	done
+	con=( "1500" )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+		fi
+	done
+
+}
+
+# 1 - encs
+comp_configs_single(){
+
+	enc=$1
+	con=(  "256"   )
+	for c in "${con[@]}"; do
+		if [ ! -f "${enc}_${c}.txt" ]; then
+			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+		fi
 	done
 }
-comp_axdimm_overhead(){
-	encs=( "axdimm" )
-	[ -z "$1" ] && return -1
-	mkdir $1
-	cd $1
-	for enc in "${encs[@]}"; do
-		con=( "1" "2" "3" "4" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 1 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "4" "16" "64" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "76" "88" "100" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
-			fi
-		done
-		con=( "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
-		for c in "${con[@]}"; do
-			if [ ! -f "${enc}_${c}.txt" ]; then
-				enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
-			fi
+
+toggle_confs_axdimm(){
+	remote_axdimm_confs
+	return
+	#confs=( "MEM_BAR" "CPY_SERVER" "ORDERED_WRITES" "LAZY_FREE" "CACHE_FLUSH" "PREF_CFG_DAT" "CONF_KEY" "MMAP_UNCACHE" )
+	confs=( "MEM_BAR" "CPY_SERVER" "ORDERED_WRITES" "LAZY_FREE" "PREF_CFG_DAT" "CONF_KEY" )
+	for c in "${confs[@]}"; do
+		[ ! -d "SmartDIMM_WITHOUT_$c" ] && mkdir SmartDIMM_WITHOUT_$c
+		cd SmartDIMM_WITHOUT_$c
+		CONFIGS=""
+		for ins in "${confs[@]}"; do
+			[ "$ins" != "$c" ] && CONFIGS+="# define $ins\\n"
 		done
 
+		ssh ${remote_host} "sed -i '/\\/\\/BASELINE_BEG/,/\\/\\/BASELINE_END/c\\//BASELINE_BEG\\n${CONFIGS}//BASELINE_END' $remote_axdimm_sw"
+		ssh ${remote_host} "${remote_scripts}/axdimm/qat_recomp_install.sh"
+		comp_configs_single axdimm
+		cd ..
 	done
+	[ ! -d "SmartDIMM_BASELINE" ] && mkdir SmartDIMM_BASELINE
+	cd SmartDIMM_BASELINE
+	CONFIGS=""
+	for ins in "${confs[@]}"; do
+		CONFIGS+="# define $ins\\n"
+	done
+	ssh ${remote_host} "sed -i '/\\/\\/BASELINE_BEG/,/\\/\\/BASELINE_END/c\\//BASELINE_BEG\\n${CONFIGS}//BASELINE_END' $remote_axdimm_sw"
+	ssh ${remote_host} "${remote_scripts}/axdimm/qat_recomp_install.sh"
+	comp_configs_single axdimm
 	cd ..
+}
 
+enc_comp(){
+	export encs=( "https" "axdimm"  "ktls" "http" )
+	for enc in "${encs[@]}"; do
+		mkdir $enc
+		cd $enc
+		comp_configs_single $enc
+		cd ..
+	done
 }

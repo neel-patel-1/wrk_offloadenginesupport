@@ -980,3 +980,61 @@ config_parse(){
 	debug "gnuplot -e \"${gp_script}\""
 	gnuplot -e "${gp_script}"
 }
+
+axdimm_conf_parse(){
+	confs=( $( ls -d */ ) )
+	echo "#comparing band cpu util memory bandwidth for varying connections" | tee comp.dat
+	for i in "${confs[@]}"; 
+	do
+		cd $i
+		echo "\"$(basename $(pwd))\"" | tee comp.dat
+		for j in "$( ls *+([0-9]).txt | sort -t_ -k2 -g)"; 
+		do 
+			cat $j | grep -E '[0-9]+' | sed -E 's/^[a-zA-Z_]+ //g' ; 
+		done | grep -vE "(Gbit|WARN|error)" | sed "s/axdimm/$(basename $(pwd))/g"
+		cd ..
+		echo " "
+	done | tee -a comp.dat
+
+	read -r -d '' gp_script <<-'EOF'
+		set terminal png size 700,500; 
+		set output 'confs_net_band.png';  
+		set datafile separator ' ';
+
+		set key right top;
+		set title 'Network Bandwidth of Different Configs (SmartDIMM) ';
+		set xlabel 'Number of Connections ';
+		set ylabel 'Network Bandwidth (Gbit/s)' ;
+		plot for [IDX=0:7] 'comp.dat' u 1:2 w lines ls IDX t columnheader(1)
+	EOF
+	#debug "gnuplot -e \"${gp_script}\"" 
+	gnuplot -e "${gp_script}"
+
+	read -r -d '' gp_script <<-'EOF'
+		set terminal png size 700,500; 
+		set output 'confs_cpu_util.png';  
+		set datafile separator ' ';
+
+		set key right top;
+		set title 'CPU Utilization of Different Configs (SmartDIMM) ';
+		set xlabel 'Number of Connections ';
+		set ylabel 'CPU Utilization (Out of 1000 %) ' ;
+		plot for [IDX=0:7] 'comp.dat' u 1:3 w lines ls IDX t columnheader(1)
+	EOF
+	#debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
+
+	read -r -d '' gp_script <<-'EOF'
+		set terminal png size 700,500; 
+		set output 'confs_cpu_util.png';  
+		set datafile separator ' ';
+
+		set key right top;
+		set title 'Memory Bandwidth of Different Configs (SmartDIMM) ';
+		set xlabel 'Number of Connections ';
+		set ylabel 'Memory Bandwidth(Gbit/s) ' ;
+		plot for [IDX=0:7] 'comp.dat' u 1:4 w lines ls IDX t columnheader(1)
+	EOF
+	#debug "gnuplot -e \"${gp_script}\""
+	gnuplot -e "${gp_script}"
+}

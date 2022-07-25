@@ -98,6 +98,11 @@ remote_file(){
 	ssh ${2} "${3} ${1}"
 }
 
+# kill local wrkrs
+kill_wrkrs() {
+	ps aux | grep -e "wrk" | grep -E -e "[0-9]+" | awk '{print $2}' | xargs sudo kill -s 2
+}
+
 # 1 - method to pass to remote nginx
 # 2 - num server cores
 start_remote_nginx(){
@@ -147,10 +152,6 @@ remote_qdisc_remove_rule(){
 	debug "${FUNCNAME[0]}:ssh ${remote_host} sudo tc qdisc del dev ${remote_net_dev} root netem"
 	ssh ${remote_host} "sudo tc qdisc del dev ${remote_net_dev} root "
 }
-# kill local wrkrs
-kill_wrkrs() {
-	ps aux | grep -e "wrk" | grep -E -e "[0-9]+" | awk '{print $2}' | xargs sudo kill -s 2
-}
 
 #1 - file
 gen_file_dut(){
@@ -172,3 +173,6 @@ no_ht(){
 	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
 }
 
+remote_axdimm_confs(){
+	ssh ${remote_host} "sed '/\\/\\/BASELINE_BEG/,/\\/\\/BASELINE_END/c\\//BASELINE_BEG\\n${CONFIGS}//BASELINE_END' $remote_axdimm_sw" | awk 'BEGIN{tp=0} {if ( tp == 1) {print $0 } $0~/BASELINE_BEG/{tp=1;} $0~/BASELINE_END/{tp=0;}'
+}
