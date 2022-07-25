@@ -76,6 +76,10 @@ enc_cpu_mem_test(){
 		capture_core_mt_async $1 $3 $2 $dur ${remote_ip} 443 file_256K.txt ${1}_band.txt
 	fi
 
+	
+	debug "${FUNCNAME[0]}: ssh ${remote_host} \"echo '' | sudo tee /home/n869p538/${enc}_${2}.mem\""
+	ssh ${remote_host} "echo '' | sudo tee /home/n869p538/${enc}_${2}.mem"
+
 	debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o ${enc}_${2}.mem -m 'mbl:1-${s_cores};'\""
 	ssh ${remote_host} "sudo pqos -t ${dur} -o /home/n869p538/${enc}_${2}.mem -m 'mbl:1-${s_cores};'" &
 	cpu_utils=( )
@@ -87,7 +91,7 @@ enc_cpu_mem_test(){
 	wait
 	scp ${remote_host}:/home/n869p538/${enc}_${2}.mem .
 	avg_cpu=$( average_discard_outliers cpu_utils )
-	mem_band=$(cat ${enc}_${2}.mem | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+	mem_band=$( band_from_mem ${enc}_${2}.mem )
 	band=$( Gbit_from_wrk ${1}_band.txt )
 	echo "${enc} ${2} ${band} ${avg_cpu} ${mem_band}"
 }

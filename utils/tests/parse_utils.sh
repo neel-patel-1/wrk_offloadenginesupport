@@ -832,6 +832,13 @@ average_discard_outliers(){
 	____HERE
 }
 
+#1-.mem file to parse
+band_from_mem(){
+	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$4;} ') )
+	avg_mb=$( average_discard_outliers samples )
+	echo "$avg_mb * 8 / 1000" | bc
+}
+
 mb_parse(){
 	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
 	for i in "${cli_sort[@]}"; do
