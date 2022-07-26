@@ -22,3 +22,5 @@ broadwell_tests
 1
 /spec_out
 /wrk
+*.mem
+*.txt

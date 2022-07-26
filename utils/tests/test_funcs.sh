@@ -60,10 +60,10 @@ quick_cpu_test(){
 	echo $(Gbit_from_wrk ${1}_band.txt) | tee -a $file
 }
 
-#start a quick test 1-enc 2-cons 3-cli_cores
+#start a quick test 1-enc 2-cons 3-cli_cores 4-duration
 enc_cpu_mem_test(){
 	enc=$1
-	dur=30
+	dur=$4
 	s_cores=10
 	[ -z "$3" ] && return
 	kill_wrkrs
@@ -94,6 +94,16 @@ enc_cpu_mem_test(){
 	mem_band=$( band_from_mem ${enc}_${2}.mem )
 	band=$( Gbit_from_wrk ${1}_band.txt )
 	echo "${enc} ${2} ${band} ${avg_cpu} ${mem_band}"
+}
+
+# 1-name
+enc_multi_test(){
+	enc_cpu_mem_test axdimm 
+	ats=5
+	dur=20
+	for i in `seq $ats`; do
+		enc_cpu_mem_test axdimm 256 16 20 | grep axdimm | sed "s/^/$(printf '%(%Y-%m-%d--%H:%M:%S)T' -1) /g" | tee -a ${1}_stats.cmb
+	done
 }
 
 #Start a quick test using variables specified in config file
@@ -785,4 +795,47 @@ enc_comp(){
 		comp_configs_single $enc
 		cd ..
 	done
+}
+
+
+# 1 - dur
+axdimm_iperf(){
+	dur=$1
+	flags=$2
+	[ ! -f "${iperf_dir}/newreq.pem" ] || [ ! -f "${iperf_dir}/key.pem" ] && openssl req -x509 -newkey rsa:2048 -keyout ${iperf_dir}/key.pem -out ${iperf_dir}/newreq.pem -days 365 -nodes
+	cd ${iperf_dir}
+
+	>&2 echo "[info] AXDIMM iperf client..."
+	sudo env \
+	OPENSSL_ENGINES=$AXDIMM_ENGINES \
+	LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_DIR/lib \
+	$offload_iperf --tls=qat -c ${remote_ip} -t $dur -i 5 ${flags}
+}
+
+# 1 - dur
+tls_iperf(){
+	dur=$1
+	flags=$2
+	[ ! -f "${iperf_dir}/newreq.pem" ] || [ ! -f "${iperf_dir}/key.pem" ] && openssl req -x509 -newkey rsa:2048 -keyout ${iperf_dir}/key.pem -out ${iperf_dir}/newreq.pem -days 365 -nodes
+	cd ${iperf_dir}
+
+	>&2 echo "[info] TLS iperf client..."
+	sudo env \
+	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
+	$offload_iperf --tls=v1.2 -c ${remote_ip} -t $dur -i 5 ${flags}
+}
+
+# 1 - dur
+tcp_iperf(){
+	dur=$1
+	flags=$2
+	cd ${iperf_dir}
+	>&2 echo "[info] TCP iperf client..."
+	sudo env \
+	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
+	$offload_iperf -c ${remote_ip} -t $dur -i 5 ${flags}
+}
+
+iperf_cli(){
+	${1}_iperf $2
 }
