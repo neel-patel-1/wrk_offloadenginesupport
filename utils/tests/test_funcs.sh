@@ -837,5 +837,6 @@ tcp_iperf(){
 }
 
 iperf_cli(){
-	${1}_iperf $2
+	[ -z "$2" ] && debug "${FUNCNAME[0]}: Missing params"
+	${1}_iperf $2 $3
 }
