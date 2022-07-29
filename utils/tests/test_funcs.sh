@@ -93,7 +93,7 @@ enc_cpu_mem_test(){
 	avg_cpu=$( average_discard_outliers cpu_utils )
 	mem_band=$( band_from_mem ${enc}_${2}.mem )
 	band=$( Gbit_from_wrk ${1}_band.txt )
-	echo "${enc} ${2} ${band} ${avg_cpu} ${mem_band}"
+	echo "${enc} ${2} ${band} ${avg_cpu} ${mem_band}" | tee ${enc}_${2}_stats.txt
 }
 
 # 1-name
@@ -685,31 +685,31 @@ comp_configs(){
 	con=( "1" "2" "3" "4" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 1 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 1 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=( "4" "16" "64" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 4 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=( "76" "88" "100" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 4 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 16 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=( "1148" "1400" "1500" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 16 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 
@@ -721,25 +721,25 @@ comp_configs_short(){
 	con=(  "2"   )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 1 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 1 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=( "4" "16" "64" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 4 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 4 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=(   "256"  "512"  "1024" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 16 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 	con=( "1500" )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 16 10 | tee -a ${enc}_${c}.txt
 		fi
 	done
 
@@ -752,9 +752,25 @@ comp_configs_single(){
 	con=(  "256"   )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 16 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 16 20 | tee -a ${enc}_${c}.txt
 		fi
 	done
+}
+
+axdimm_flush_sweep(){
+	for i in `seq 0 9`; do
+		[ ! -d "SmartDIMM_flush_${i}_of_10" ] && mkdir SmartDIMM_flush_${i}_of_10
+		cd SmartDIMM_flush_${i}_of_10
+		ssh ${remote_host} "sed -i -E 's/# define fl_ratio [0-9]/# define fl_ratio $i/g' $remote_axdimm_sw"
+		ssh ${remote_host} "${remote_scripts}/axdimm/qat_recomp_install.sh"
+		comp_configs_single axdimm
+		cd ..
+	done
+
+}
+
+https_band_assoc(){
+	comp_configs_short https
 }
 
 toggle_confs_axdimm(){
