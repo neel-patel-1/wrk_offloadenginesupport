@@ -818,7 +818,7 @@ Gbit_from_wrk(){
 average_discard_outliers(){
 	variables=10
 	local -n _avgs=$1
-	python - <<-____HERE
+	python3 - <<-____HERE
 	import numpy as np
 	def reject_outliers(data, m = 2.):
 	    d = np.abs(data - np.median(data))
