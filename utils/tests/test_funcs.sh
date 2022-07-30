@@ -752,13 +752,13 @@ comp_configs_single(){
 	con=(  "256"   )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
-			enc_cpu_mem_test $enc $c 16 20 | tee -a ${enc}_${c}.txt
+			enc_cpu_mem_test $enc $c 16 120 | tee -a ${enc}_${c}.txt
 		fi
 	done
 }
 
 axdimm_flush_sweep(){
-	for i in `seq 0 9`; do
+	for i in `seq 0 1 9`; do
 		[ ! -d "SmartDIMM_flush_${i}_of_10" ] && mkdir SmartDIMM_flush_${i}_of_10
 		cd SmartDIMM_flush_${i}_of_10
 		ssh ${remote_host} "sed -i -E 's/# define fl_ratio [0-9]/# define fl_ratio $i/g' $remote_axdimm_sw"

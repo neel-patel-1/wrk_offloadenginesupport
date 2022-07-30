@@ -1045,3 +1045,9 @@ axdimm_conf_parse(){
 	#debug "gnuplot -e \"${gp_script}\""
 	gnuplot -e "${gp_script}"
 }
+
+parse_flush_sweep(){
+	for i in *_flush_*/*stat*; do
+		echo "$(echo $i | grep -Eo '[0-9]+_of_[0-9]+') $(cat $i)";
+	done
+}
