@@ -825,7 +825,7 @@ axdimm_iperf(){
 	sudo env \
 	OPENSSL_ENGINES=$AXDIMM_ENGINES \
 	LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_DIR/lib \
-	$offload_iperf --tls=qat -c ${remote_ip} -t $dur -i 5 ${flags}
+	$offload_iperf --tls=qat -c ${remote_ip} -t $dur -i 5 ${flags} &
 }
 
 # 1 - dur
@@ -838,7 +838,7 @@ tls_iperf(){
 	>&2 echo "[info] TLS iperf client..."
 	sudo env \
 	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
-	$offload_iperf --tls=v1.2 -c ${remote_ip} -t $dur -i 5 ${flags}
+	$offload_iperf --tls=v1.2 -c ${remote_ip} -t $dur -i 5 ${flags} &
 }
 
 # 1 - dur
@@ -849,10 +849,95 @@ tcp_iperf(){
 	>&2 echo "[info] TCP iperf client..."
 	sudo env \
 	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
-	$offload_iperf -c ${remote_ip} -t $dur -i 5 ${flags}
+	$offload_iperf -c ${remote_ip} -t $dur -i 5 ${flags} &
 }
 
 iperf_cli(){
 	[ -z "$2" ] && debug "${FUNCNAME[0]}: Missing params"
-	${1}_iperf $2 $3
+	enc=$1
+	dur=$2
+	${1}_iperf $2 $3 > ${enc}_${dur}.iperf
+	debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o ${enc}_${2}.mem -m 'mbl:1-20;'\""
+	ssh ${remote_host} "sudo pqos -t ${dur} -o /home/n869p538/${enc}_${2}.mem -m 'mbl:1-20;'" &
+	cpu_utils=( )
+	for i in `seq 1 $(( dur / 5 )) $(( dur - $(( dur / 5)) ))`; do
+		sleep $(( $dur / 5 ))
+		debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep iperf | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'\""
+		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep iperf | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" )" )
+	done
+	scp ${remote_host}:/home/n869p538/${enc}_${2}.mem .
+
+	avg_cpu=$( average_discard_outliers cpu_utils )
+	mem_band=$( band_from_mem ${enc}_${2}.mem )
+	net_band=$( cat ${enc}_${dur}.iperf | grep -Eo '[0-9]+\.[0-9]+ Gbits/sec' )
+	echo "$1 $net_band $avg_cpu $mem_band" | tee  ${enc}_${2}.stats
+	ssh ${remote_host} "sudo kill -s 2 $serv_pid"
+}
+
+# start spec benches on individual cores on the remote host
+# 1- test 2-cores to start specs 3-encryption scheme 4-file to request
+spec_back_cores_cli_sampling(){
+	kill_wrkrs
+	kill_procs
+	local -n _cores=$2
+
+	debug "${FUNCNAME[0]}: ssh ${remote_host} ${remote_spec} --config=testConfig --action build $1"
+	ssh ${remote_host} ${remote_spec} --config=testConfig --action build $1 | tee ${1}__build_log.txt >/dev/null
+
+	debug "build complete.. starting_remote_nginx $3 ${#_cores[@]}"
+	start_remote_nginx $3 ${#_cores[@]}
+	for c in "${cores[@]}"; do
+		debug "${FUNCNAME[0]}: ssh ${remote_host} taskset --cpu-list $c ${remote_spec} --iterations=1 --copies=1 -o csv ${3} &"
+		2>&1 ssh ${remote_host} "taskset --cpu-list $c ${remote_spec} --iterations=1 --copies=1 -o csv ${1} " | tee $1_$3_spec_core_$c.cpu &
+	done
+	debug "${FUNCNAME[0]}: Waiting for benchmarks to start"
+	while [ -z "$( grep 'Running Benchmarks' $1_$3_spec_core_$c.cpu )" ]; do
+		sleep 1
+		debug "."
+	done
+	#tail -f -n0 $1_$3_spec_core_$c.cpu | grep -qe "Running Benchmarks"
+	debug "bench started starting workers"
+
+	debug "capture_core_mt_async $3 12 64 8h ${remote_ip} $(getport $3) file_256K.txt $1_$3_$(echo "${_cores[*]}" | sed 's/ /_/g')_raw_band"
+	capture_core_mt_async $3 12 64 8h ${remote_ip} $(getport $3) ${4} $1_$3_$(echo "${_cores[*]}" | sed 's/ /_/g')_raw_band
+
+	debug "workers started.. starting sampling"
+	debug "${FUNCNAME[0]}: ssh ${remote_host} \"echo '' | sudo tee /home/n869p538/${1}_${3}.mem\""
+	ssh ${remote_host} "echo '' | sudo tee /home/n869p538/${1}_${3}.mem"
+
+	debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o /home/n869p538/${1}_${3}.mem -m 'mbl:1-${#_cores[@]};'\""
+	ssh ${remote_host} "sudo pqos -t ${dur} -o /home/n869p538/${1}_${3}.mem -m 'mbl:1-${#_cores[@]};'" &
+
+	nginx_cpu_utils=( )
+	spec_cpu_utils=( )
+	while [ -z "$( grep  "runcpu finished" $1_$3_spec_core_$c.cpu )" ]; do
+		sleep 10
+		#debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'\""
+		nginx_cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" | tee -a ${1}_${3}.cpu_util )" )
+		spec_cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep -E '(run_base|r_base|mcf_r)' | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" | tee -a ${1}_${3}.cpu_util )" )
+
+	done
+	echo "runcpu_finished"
+	kill_wrkrs
+	kill_procs
+	#tail -f -n0 $1_$3_spec_core_$c.cpu | grep  -qe "runcpu finished"
+	debug "scp ${remote_host}:/home/n869p538/${1}_${3}.mem ."
+	scp ${remote_host}:/home/n869p538/${1}_${3}.mem .
+
+	nginx_avg_cpu=$( average_discard_outliers nginx_cpu_utils )
+	spec_avg_cpu=$( average_discard_outliers spec_cpu_utils )
+	mem_band=$( band_from_mem ${1}_${3}.mem )
+	net_band=$( Gbit_from_wrk $1_$3_$(echo "${_cores[*]}" | sed 's/ /_/g')_raw_band ) 
+
+	echo "nginx_util:$nginx_avg_cpu,spec_util:$spec_avg_cpu,mem_band(Gbit/s):$mem_band,nginx_net_band(Gbit/s):$net_band" | tee ${1}_${3}.stats
+
+}
+
+#1-test #2-num cores #3-encryption
+single_spec(){
+	[ -z "${3}" ] && return -1
+	ssh ${remote_host} "echo off | sudo tee /sys/devices/system/cpu/smt/control"
+	ssh ${remote_host} 'echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo'
+	cores=( `seq 1 $2` )
+	spec_back_cores_cli_sampling $1 cores ${3} file_256K.txt
 }

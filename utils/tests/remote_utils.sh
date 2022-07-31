@@ -108,7 +108,6 @@ kill_wrkrs() {
 start_remote_nginx(){
 	ssh ${remote_host} $remote_nginx_start $1 $2 2>/dev/null
 }
-return
 
 kill_nginx(){
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
@@ -128,8 +127,10 @@ enable_perf(){
 
 # kill remote benchmarks and nginx workers
 kill_procs(){
+	debug "ssh ${remote_host} \"${remote_scripts}/kill_nginx.sh\""
 	ssh ${remote_host} ${remote_scripts}/kill_nginx.sh
-	ssh ${remote_host} ${remote_scripts}/kill_spec.sh
+	debug "ssh ${remote_host} \"${remote_scripts}/kill_spec.sh\""
+	ssh ${remote_host} "${remote_scripts}/kill_spec.sh"
 }
 
 
