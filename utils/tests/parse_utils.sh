@@ -832,11 +832,37 @@ average_discard_outliers(){
 	____HERE
 }
 
+average_all(){
+	local -n _avgs=$1
+	python3 - <<-____HERE
+	import numpy as np
+	vals=np.array([ $(echo ${_avgs[*]} | sed 's/ /,/g' ) ], dtype=float)
+	print(np.average(vals))
+	____HERE
+}
+
 #1-.mem file to parse
 band_from_mem(){
 	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$4;} ') )
 	avg_mb=$( average_discard_outliers samples )
 	echo "$avg_mb * 8 / 1000" | bc
+}
+band_from_mem_all(){
+	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$4;} ') )
+	avg_mb=$( average_all samples )
+	echo "$avg_mb * 8 / 1000" | bc
+}
+
+# CPU files need to be csv #1- name of test
+avg_cpu_stats(){
+	[ -z "${1}" ] && return -1 
+	rates=( )
+	tots=( )
+	for i in *.csv; do
+		rates+=( "$(grep ${1} ${i} | head -n 1 | awk -F, '{ printf("%s",$4) }' )" )
+		tots+=( "$(grep ${1} ${i} | head -n 1 | awk -F, '{ printf("%s",$3) }' )" )
+	done
+	echo "$( average_all rates ),$( average_all tots )"
 }
 
 mb_parse(){
@@ -1050,4 +1076,9 @@ parse_flush_sweep(){
 	for i in *_flush_*/*stat*; do
 		echo "$(echo $i | grep -Eo '[0-9]+_of_[0-9]+') $(cat $i)";
 	done
+}
+
+# start spec benches on individual cores on the remote host
+parse_spec_back_cores_cli_sampling(){
+	for i in *; do echo ${i},$( cat $i/*.stats | sed 's/[/a-zA-Z_:()]//g'); done
 }
