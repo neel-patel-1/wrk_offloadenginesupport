@@ -913,6 +913,7 @@ spec_back_cores_cli_sampling(){
 	for c in "${cores[@]}"; do
 		debug "${FUNCNAME[0]}: ssh ${remote_host} taskset --cpu-list $c ${remote_spec} --iterations=1 --copies=1 -o csv ${3} &"
 		2>&1 ssh ${remote_host} "taskset --cpu-list $c ${remote_spec} --iterations=1 --copies=1 -o csv ${1} " | tee $1_$3_spec_core_$c.cpu &
+		sleep 2
 	done
 	debug "${FUNCNAME[0]}: Waiting for benchmarks to start"
 	while [ -z "$( grep 'Running Benchmarks' $1_$3_spec_core_$c.cpu )" ]; do
@@ -953,8 +954,11 @@ spec_back_cores_cli_sampling(){
 	mem_band=$( band_from_mem_all ${1}_${3}.mem )
 	net_band=$( Gbit_from_wrk $1_$3_$(echo "${_cores[*]}" | sed 's/ /_/g')_raw_band ) 
 
-	scp -r ${remote_host}:$(grep 'format: CSV' *.cpu | awk '{print $4}') .
-	spec_stats=$( avg_cpu_stats ${1} )
+	rems=($(grep 'format: CSV' *.cpu | awk '{print $5}') )
+	for i in "${rems[@]}"; do
+		scp ${remote_host}:$i . >/dev/null
+	done
+	spec_stats=$(grep -e 'iteration #1' CPU2017* | awk -F, 'BEGIN{t_avg=0; r_avg=0;} {t_avg+=$3; r_avg+=$4;} END{printf("total_time:%s,rate:%s\n",t_avg,r_avg);}')
 
 
 	echo "nginx_net_band(Gbit/s):${net_band},spec_rate/spec_time:${spec_stats},mem_band(Gbit/s):$mem_band,nginx_util:$nginx_avg_cpu,spec_util:$spec_avg_cpu," | tee ${1}_${3}.stats
@@ -1001,7 +1005,7 @@ spec_back_cores_cli_sampling_cache_limit(){
 		debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o /home/n869p538/${1}_${3}.mem -m 'mbl:1-${#_cores[@]};'\""
 		ssh ${remote_host} "sudo pqos -t 5 -o /home/n869p538/${1}_${3}.mem -m 'mbl:1-${#_cores[@]};'" &
 		nginx_cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" | tee -a ${1}_${3}.nginx_cpu_util )" )
-		spec_cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep -E '(run_base|r_base|mcf_r)' | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" | tee -a ${1}_${3}.spec_cpu_util )" )
+		spec_cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep -E '(deepsjeng|r_bas|run_base|r_base|mcf_r)' | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" | tee -a ${1}_${3}.spec_cpu_util )" )
 
 	done
 	echo "runcpu_finished"
@@ -1043,8 +1047,8 @@ single_rdt_spec(){
 }
 
 multi_enc_spec(){
-	#encs=(  "https"  "axdimm" )
-	encs=(  "https" )
+	encs=(  "https"  "axdimm" )
+	encs=(  "axdimm" )
 	for i in "${encs[@]}"; do
 		[ ! -d "$i" ] && mkdir $i
 		cd $i

@@ -1079,6 +1079,29 @@ parse_flush_sweep(){
 }
 
 # start spec benches on individual cores on the remote host
+
+parse_fin_spec_enc(){
+	nginx_cpu_utils=( $( cat *.nginx_cpu_util) )
+	spec_cpu_utils=( $( cat *.spec_cpu_util) )
+	
+	nginx_avg_cpu=$( average_all nginx_cpu_utils )
+	spec_avg_cpu=$( average_all spec_cpu_utils )
+	mem_band=$( band_from_mem_all *.mem )
+	net_band=$( Gbit_from_wrk *raw_band ) 
+	rems=($(grep 'format: CSV' *.cpu | awk '{print $5}') )
+	for i in "${rems[@]}"; do
+		scp ${remote_host}:$i . >/dev/null
+	done
+	spec_stats=$(grep -e 'iteration #1' CPU2017* | awk -F, 'BEGIN{t_avg=0; r_avg=0;} {t_avg+=$3; r_avg+=$4;} END{printf("total_time:%s,rate:%s\n",t_avg,r_avg);}')
+		
+	echo "$nginx_avg_cpu,$spec_avg_cpu,$mem_band,$net_band,$spec_stats"
+}
+
 parse_spec_back_cores_cli_sampling(){
-	for i in *; do echo ${i},$( cat $i/*.stats | sed 's/[/a-zA-Z_:()]//g'); done
+	for i in *; do 
+		cd $i;
+		echo -n  $i,
+		parse_fin_spec_enc 
+		cd ..
+	done
 }
