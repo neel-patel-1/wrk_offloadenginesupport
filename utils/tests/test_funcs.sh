@@ -866,6 +866,19 @@ tls_iperf(){
 }
 
 # 1 - dur
+ktls_iperf(){
+	dur=$1
+	flags=$2
+	[ ! -f "${iperf_dir}/newreq.pem" ] || [ ! -f "${iperf_dir}/key.pem" ] && openssl req -x509 -newkey rsa:2048 -keyout ${iperf_dir}/key.pem -out ${iperf_dir}/newreq.pem -days 365 -nodes
+	cd ${iperf_dir}
+
+	>&2 echo "[info] TLS iperf client..."
+	sudo env \
+	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
+	$offload_iperf --tls=v1.2 -c ${remote_ip} -t $dur -i 5 ${flags} &
+}
+
+# 1 - dur
 tcp_iperf(){
 	dur=$1
 	flags=$2
@@ -895,7 +908,6 @@ iperf_cli(){
 	mem_band=$( band_from_mem ${enc}_${2}.mem )
 	net_band=$( cat ${enc}_${dur}.iperf | grep -Eo '[0-9]+\.[0-9]+ Gbits/sec' )
 	echo "$1 $net_band $avg_cpu $mem_band" | tee  ${enc}_${2}.stats
-	ssh ${remote_host} "sudo kill -s 2 $serv_pid"
 }
 
 # start spec benches on individual cores on the remote host
@@ -1048,7 +1060,6 @@ single_rdt_spec(){
 
 multi_enc_spec(){
 	encs=(  "https"  "axdimm" )
-	encs=(  "axdimm" )
 	for i in "${encs[@]}"; do
 		[ ! -d "$i" ] && mkdir $i
 		cd $i
