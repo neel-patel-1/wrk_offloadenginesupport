@@ -10,7 +10,7 @@ ktls_wrk: autonomous-asplos21-artifact/openssl/libssl.so.3 wrk/Makefile
 	(cd autonomous-asplos21-artifact/ \
 		&& WITH_OPENSSL=$$(pwd)/openssl make wrk )
 
-openssl/libssl.so.3: openssl/config
+autonomous-asplos21-artifact/openssl/libssl.so.3: openssl/config
 	(cd autonomous-asplos21-artifact/openssl &&\
 		./config enable-ktls enable-ssl3 enable-threads shared linux-x86_64 && make -j)
 

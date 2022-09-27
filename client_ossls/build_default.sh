@@ -8,7 +8,7 @@ cd $cli_ossls
 #openssl
 cd ${cli_ossls}
 
-[ ! -f "${cli_ossls}/openssl-3.0.0.tar.gz" ] && cd ${cli_ossls} && wget https://www.openssl.org/source/openssl-3.0.0.tar.gz
+[ ! -f "${cli_ossls}/openssl-3.0.0.tar.gz" ] && cd ${cli_ossls} && wget --no-check-certificate https://www.openssl.org/source/openssl-3.0.0.tar.gz
 [ ! -d "${cli_ossls}/openssl-3.0.0" ] && cd ${cli_ossls} && tar xvf openssl-3.0.0.tar.gz
 if [ ! -f "${cli_ossls}/openssl-3.0.0/libssl.so.3" ]; then
 	cd ${cli_ossls}/openssl-3.0.0

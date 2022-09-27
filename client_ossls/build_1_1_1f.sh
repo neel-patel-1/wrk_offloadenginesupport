@@ -8,7 +8,7 @@ cd $cli_ossls
 #openssl
 cd ${cli_ossls}
 
-[ ! -f "${cli_ossls}/openssl-1.1.1f.tar.gz" ] && cd ${cli_ossls} && wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1f.tar.gz
+[ ! -f "${cli_ossls}/openssl-1.1.1f.tar.gz" ] && cd ${cli_ossls} && wget --no-check-certificate https://www.openssl.org/source/old/1.1.1/openssl-1.1.1f.tar.gz
 [ ! -d "${cli_ossls}/openssl-1.1.1f" ] && cd ${cli_ossls} && tar xvf openssl-1.1.1f.tar.gz
 if [ ! -f "${cli_ossls}/openssl-1.1.1f/libssl.so" ]; then
 	cd ${cli_ossls}/openssl-1.1.1f
