@@ -30,6 +30,20 @@ quick_test(){
 	fi
 }
 
+quick_file_test(){
+	enc=$1
+	[ -z "$3" ] && return
+	kill_wrkrs
+	start_remote_nginx $enc 10
+	if [ "$enc" = "http" ]; then
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} 80 file_256K.txt ${1}_band.txt"
+		capture_core_mt_async $1 4 $2 10 ${remote_ip} 80 ${3} ${1}_band.txt
+	else
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} 443 file_256K.txt ${1}_band.txt"
+		capture_core_mt_async $1 4 $2 10 ${remote_ip} 443 ${3} ${1}_band.txt
+	fi
+}
+
 quick_rdt_comp(){
 	enc=$1
 	[ -z "$2" ] && return
