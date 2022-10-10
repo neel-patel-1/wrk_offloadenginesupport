@@ -44,6 +44,16 @@ quick_file_test(){
 	fi
 }
 
+emul_nginx_comp(){
+	ssh ${remote_host} ${remote_root}/ngx_gzip_comp_cpy/start_default_gzip.sh
+	echo "gzip"
+	${default_wrk} -t16 -c1024  -d10 -H'accept-encoding:gzip, deflate' http://${remote_ip}:80/rand_file_4K.txt
+
+	echo "emul"
+	ssh ${remote_host} ${remote_root}/ngx_gzip_comp_cpy/start_gzip_emul.sh
+	${default_wrk} -t16 -c1024  -d10 http://${remote_ip}:80/rand_file_4K.txt
+}
+
 quick_rdt_comp(){
 	enc=$1
 	[ -z "$2" ] && return
@@ -118,19 +128,23 @@ enc_cpu_mem_test(){
 	debug "${FUNCNAME[0]}: ssh ${remote_host} \"echo '' | sudo tee /home/n869p538/${enc}_${2}.mem\""
 	ssh ${remote_host} "echo '' | sudo tee /home/n869p538/${enc}_${2}.mem"
 
-	debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o ${enc}_${2}.mem -m 'mbl:1-${s_cores};'\""
-	ssh ${remote_host} "sudo pqos -t ${dur} -o /home/n869p538/${enc}_${2}.mem -m 'mbl:1-${s_cores};'" &
+	debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t ${dur} -o ${enc}_${2}.mem -m 'mbl:0-$((s_cores-1));'\""
+	ssh ${remote_host} "sudo pqos -t ${dur} -o /home/n869p538/${enc}_${2}.mem -m 'mbl:0-$((s_cores-1));'" &
 	cpu_utils=( )
-	for i in `seq 1 $(( dur / 5 )) $(( dur - $(( dur / 5)) ))`; do
-		sleep $(( $dur / 5 ))
-		debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'\""
-		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" )" )
+	
+	incr=$( echo "$dur / 100" | bc )
+	high=$( echo " $dur / 2 " | bc )
+	for i in `seq 1 $incr $high`; do
+		sleep $incr
+		debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'\""
+		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" )" )
 	done
 	wait
 	scp ${remote_host}:/home/n869p538/${enc}_${2}.mem .
 	avg_cpu=$( average_discard_outliers cpu_utils )
 	mem_band=$( band_from_mem ${enc}_${2}.mem )
 	band=$( Gbit_from_wrk ${1}_band.txt )
+	echo "${avg_cpu[@]}"
 	echo "${enc} ${2} ${band} ${avg_cpu} ${mem_band}" | tee ${enc}_${2}_stats.txt
 }
 
@@ -787,7 +801,7 @@ comp_configs_short(){
 comp_configs_single(){
 
 	enc=$1
-	con=(  "256"   )
+	con=(  "256"  )
 	for c in "${con[@]}"; do
 		if [ ! -f "${enc}_${c}.txt" ]; then
 			enc_cpu_mem_test $enc $c 16 120 | tee -a ${enc}_${c}.txt
@@ -796,13 +810,19 @@ comp_configs_single(){
 }
 
 axdimm_flush_sweep(){
-	for i in `seq 0 1 9`; do
-		[ ! -d "SmartDIMM_flush_${i}_of_10" ] && mkdir SmartDIMM_flush_${i}_of_10
-		cd SmartDIMM_flush_${i}_of_10
-		ssh ${remote_host} "sed -i -E 's/# define fl_ratio [0-9]/# define fl_ratio $i/g' $remote_axdimm_sw"
-		ssh ${remote_host} "${remote_scripts}/axdimm/qat_recomp_install.sh"
-		comp_configs_single axdimm
+	#ratios=( "0" "5" "20" "50" "75" "80" "90" "91" "93" "95" "100"  )
+	#ratios=( "5" "100" "20" "50"  "62" "75" "90"   )
+	#ratios=( "5" "20" "50" "100" )
+	ratios=( "50" "100"  )
+	for i in "${ratios[@]}"; do
+		if [ ! -d "SmartDIMM_flush_${i}_of_100" ]; then
+			mkdir -p SmartDIMM_flush_${i}_of_100
+			cd SmartDIMM_flush_${i}_of_100
+			ssh ${remote_host} "sed -i -E 's/#define fl_ratio [0-9]+/#define fl_ratio $i/g' $remote_axdimm_sw"
+			ssh ${remote_host} "${remote_scripts}/axdimm/bo.sh"
+			comp_configs_single axdimm
 		cd ..
+		fi
 	done
 
 }
@@ -886,7 +906,7 @@ ktls_iperf(){
 	[ ! -f "${iperf_dir}/newreq.pem" ] || [ ! -f "${iperf_dir}/key.pem" ] && openssl req -x509 -newkey rsa:2048 -keyout ${iperf_dir}/key.pem -out ${iperf_dir}/newreq.pem -days 365 -nodes
 	cd ${iperf_dir}
 
-	>&2 echo "[info] TLS iperf client..."
+	>&2 echo "[info] KTLS iperf client..."
 	sudo env \
 	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
 	$offload_iperf --tls=v1.2 -c ${remote_ip} -t $dur -i 5 ${flags} &
@@ -914,13 +934,13 @@ iperf_cli(){
 	for i in `seq 1 $(( dur / 5 )) $(( dur - $(( dur / 5)) ))`; do
 		sleep $(( $dur / 5 ))
 		debug "${FUNCNAME[0]}: ssh ${remote_host} \"top -b -n1 -w512 | grep iperf | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'\""
-		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep iperf | awk 'BEGIN{sum=0;} {sum+=\$9} END{print sum}'" )" )
+		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep iperf | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" )" ) #change this when %CPU col changes in top
 	done
 	scp ${remote_host}:/home/n869p538/${enc}_${2}.mem .
 
 	avg_cpu=$( average_discard_outliers cpu_utils )
 	mem_band=$( band_from_mem ${enc}_${2}.mem )
-	net_band=$( cat ${enc}_${dur}.iperf | grep -Eo '[0-9]+\.[0-9]+ Gbits/sec' )
+	net_band=$( cat ${enc}_${dur}.iperf | grep -Eo '[0-9]+\.[0-9]+ Gbits/sec' | grep -Eo '[0-9]+\.[0-9]+' )
 	echo "$1 $net_band $avg_cpu $mem_band" | tee  ${enc}_${2}.stats
 }
 
