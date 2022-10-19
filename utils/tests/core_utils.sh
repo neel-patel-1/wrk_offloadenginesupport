@@ -116,9 +116,9 @@ ktls_core(){
 ktls_mt_core(){
 	export LD_LIBRARY_PATH=$ktls_drop_ossl
 	#debug "$(ldd ${ktls_drop_wrk})"
-	#debug "${FUNCNAME[0]}: $ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
-	#$ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}
-	${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
+	debug "${FUNCNAME[0]}: $ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
+	$ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+	#${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
 
 link_core(){
