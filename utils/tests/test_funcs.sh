@@ -901,6 +901,7 @@ tls_iperf(){
 
 # 1 - dur
 ktls_iperf(){
+	ktls_iperf=/home/n869p538/wrk_offloadenginesupport/client_wrks/autonomous-asplos21-artifact/iperf/src/iperf
 	dur=$1
 	flags=$2
 	[ ! -f "${iperf_dir}/newreq.pem" ] || [ ! -f "${iperf_dir}/key.pem" ] && openssl req -x509 -newkey rsa:2048 -keyout ${iperf_dir}/key.pem -out ${iperf_dir}/newreq.pem -days 365 -nodes
@@ -908,8 +909,22 @@ ktls_iperf(){
 
 	>&2 echo "[info] KTLS iperf client..."
 	sudo env \
-	LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f \
-	$offload_iperf --tls=v1.2 -c ${remote_ip} -t $dur -i 5 ${flags} &
+	LD_LIBRARY_PATH=/home/n869p538/wrk_offloadenginesupport/client_wrks/autonomous-asplos21-artifact/openssl:$LD_LIBRARY_PATH \
+	$ktls_iperf -c ${remote_ip} -t $dur -i 5 -l262144 --tls --ktls --ktls_record_size=16000 &
+}
+
+# 1 - dur
+qtls_iperf(){
+	qtls_iperf=/home/n869p538/wrk_offloadenginesupport/async_nginx_build/iperf_test/iperf_ssl/src/iperf
+	dur=$1
+	flags=$2
+	[ ! -f "${iperf_dir}/newreq.pem" ] || [ ! -f "${iperf_dir}/key.pem" ] && openssl req -x509 -newkey rsa:2048 -keyout ${iperf_dir}/key.pem -out ${iperf_dir}/newreq.pem -days 365 -nodes
+	cd ${iperf_dir}
+
+	>&2 echo "[info] QTLS iperf client..."
+	sudo env \
+	LD_LIBRARY_PATH=/home/n869p538/wrk_offloadenginesupport/client_wrks/autonomous-asplos21-artifact/openssl:$LD_LIBRARY_PATH \
+	$qtls_iperf -c localhost -t $dur -i 5 -l262144 --tls --ktls --ktls_record_size=16000 &
 }
 
 # 1 - dur
