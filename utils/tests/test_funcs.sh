@@ -140,7 +140,7 @@ enc_cpu_mem_test(){
 		cpu_utils+=( "$( ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" )" )
 	done
 	wait
-	scp ${remote_host}:/home/n869p538/${enc}_${2}.mem .
+	scp ${remote_host}:/home/n869p538/${enc}_${2}.mem ./${enc}_${2}.mem
 	avg_cpu=$( average_discard_outliers cpu_utils )
 	mem_band=$( band_from_mem ${enc}_${2}.mem )
 	band=$( Gbit_from_wrk ${1}_band.txt )
