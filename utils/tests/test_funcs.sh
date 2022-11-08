@@ -18,15 +18,20 @@ export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 #start a quick test
 quick_test(){
 	enc=$1
-	[ -z "$2" ] && return
+	[ -z "$2" ] && return	
+	if [ -z "$3" ]; then 
+		time=10
+	else
+		time=$3
+	fi
 	kill_wrkrs
 	start_remote_nginx $enc 10
 	if [ "$enc" = "http" ]; then
-		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} 80 file_256K.txt ${1}_band.txt"
-		capture_core_mt_async $1 4 $2 10 ${remote_ip} 80 file_256K.txt ${1}_band.txt
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} $( getport $enc ) file_256K.txt ${1}_band.txt"
+		capture_core_mt_async $1 10 $2 ${time} ${remote_ip} 80 file_256K.txt ${1}_band.txt
 	else
-		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} 443 file_256K.txt ${1}_band.txt"
-		capture_core_mt_async $1 4 $2 10 ${remote_ip} 443 file_256K.txt ${1}_band.txt
+		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} $( getport $enc ) file_256K.txt ${1}_band.txt"
+		capture_core_mt_async $1 10 $2 ${time} ${remote_ip} 443 file_256K.txt ${1}_band.txt
 	fi
 }
 
@@ -643,69 +648,52 @@ mbm_test(){
 	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing param" && return
 	e=$1
 	file=$2
+	time=10
 	start_remote_nginx $e 10
-	con=( "1" "2" "3" "4" )
+	#con=( "1" "2" "3" "4" "6" "10" "16" "64" "76" "88" "100" "110" "120" "130" "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
+	#con=( "1" "2" "4" "8" "16" "32" "64" "128" "256" "512" "1024" "1500" "2048"  )
+	con=(  "16"  "64"  "256" "512" "1024" "1500" )
 	for i in "${con[@]}"; do
-		if [ ! -f "${e}_${i}_band.txt" ]; then
-			debug "${FUNCNAME[0]}: capture_core_mt_async $e 1 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
-			capture_core_mt_async $e 1 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
-			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+		if [ ! -f "${e}_${i}.mem" ]; then
+			n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )
+			if [ "${i}" -lt 16 ]; then
+				debug "capture_core_mt_async $e ${i} $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt"
+				capture_core_mt_async $e ${i} $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			else
+				debug "capture_core_mt_async $e 16 $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt"
+				capture_core_mt_async $e 16 $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			fi
+			#summing across all cores -- used in 36609 1KB figure
+			ssh ${remote_host} "sudo rm -rf ${e}_${i}.mem; sudo pqos -t ${time} -i1 -I -p \"mbl:[${n_tds}];llc:[${n_tds}];\" -o ${e}_${i}.mem " # pmon
+			#ssh ${remote_host} "sudo rm -rf ${e}_${i}.mem; sudo pqos -t ${time} -i1 -m \"mbl:[${n_tds}];llc:[${n_tds}];\" -o ${e}_${i}.mem " # cmon
 			wait
 			scp ${remote_host}:${e}_${i}.mem .
 		fi
 	done
-	con=( "4" "16" "64" )
+	
+}
+
+mbm_test_cores(){
+	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing param" && return
+	e=$1
+	file=$2
+	time=10
+	start_remote_nginx $e 10
+	#con=( "1" "2" "3" "4" "6" "10" "16" "64" "76" "88" "100" "110" "120" "130" "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
+	con=( "1" "2" "4" "8" "16" "32" "64" "128" "256" "512" "1024" "1500" "2048"  )
+	#con=(  "1024"   )
 	for i in "${con[@]}"; do
 		if [ ! -f "${e}_${i}_band.txt" ]; then
-			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
-			capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
-			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-			wait
-			scp ${remote_host}:${e}_${i}.mem .
-		fi
-	done
-	con=( "76" "88" "100" )
-	for i in "${con[@]}"; do
-		if [ ! -f "${e}_${i}_band.txt" ]; then
-			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
-			capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
-			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-			wait
-			scp ${remote_host}:${e}_${i}.mem .
-		fi
-	done
-	con=( "110" "120" "130" )
-	for i in "${con[@]}"; do
-		if [ ! -f "${e}_${i}_band.txt" ]; then
-			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
-			capture_core_mt_async $e 4 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
-			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-			wait
-			scp ${remote_host}:${e}_${i}.mem .
-		fi
-	done
-	con=( "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" )
-	for i in "${con[@]}"; do
-		if [ ! -f "${e}_${i}_band.txt" ]; then
-			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
-			capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
-			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
-			wait
-			scp ${remote_host}:${e}_${i}.mem .
-		fi
-	done
-	con=( "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
-	for i in "${con[@]}"; do
-		if [ ! -f "${e}_${i}_band.txt" ]; then
-			debug "${FUNCNAME[0]}: capture_core_mt_async $e 4 $i 10  ${remote_ip} $(getport $e ) $file ${e}_${i}_band.txt"
-			capture_core_mt_async $e 16 $i 10  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
-			debug "${FUNCNAME[0]}:ssh ${remote_host} \"sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:0-12;'\""
-			ssh ${remote_host} "sudo pqos -t 10 -o ${e}_${i}.mem -m 'mbl:1-10;'"
+			n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )
+			if [ "${i}" -lt 16 ]; then
+				debug "capture_core_mt_async $e ${i} $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt"
+				capture_core_mt_async $e ${i} $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			else
+				debug "capture_core_mt_async $e 16 $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt"
+				capture_core_mt_async $e 16 $i ${time}  ${remote_ip} $( getport $e ) $file ${e}_${i}_band.txt
+			fi
+			#summing across all cores -- used in 36609 1KB figure
+			ssh ${remote_host} "sudo rm -rf ${e}_${i}.mem; sudo pqos -t ${time} -o ${e}_${i}.mem -m 'mbl:1-10'" # og
 			wait
 			scp ${remote_host}:${e}_${i}.mem .
 		fi

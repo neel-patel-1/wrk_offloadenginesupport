@@ -754,33 +754,14 @@ sum_band_array(){
 	echo ${GB}
 }
 mb_parse(){
-	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
-	for i in "${cli_sort[@]}"; do
-		con=$( echo $i | grep -Eo '[0-9]+' )
-		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
-		tot=( $( cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
-
-		#tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
-		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
-		echo $con $mem_band $tot
-	done | sort -g | tee plot.dat
-	echo "parsing"
-	gp_script="set terminal png size 700,500; set output 'mbm_cli_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
-	gp_script+="set yr [0:*]; "
-	gp_script+="set title 'Memory Bandwidth Bandwidth from Network Bandwidth  '; "
-	gp_script+="set xlabel 'Number of Connections '; "
-	gp_script+="set ylabel 'Memory Bandwidth (Gbit/s)'; "
-	gp_script+="plot 'plot.dat' title 'Memory Bandwidth' with linespoints linestyle 1 , "
-	debug "gnuplot -e \"${gp_script}\""
-	gnuplot -e "${gp_script}"
-	debug "making graph for ${e}"
 
 	for i in *.mem; do
 		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
 		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
 		GBit=$( python -c "print ( $( sum_band_array tot ) * 8 )")
+		RPS=$( cat $n_file | grep Requests/sec | awk '{print $2}')
 		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
-		echo $GBit $mem_band
+		echo $RPS $GBit $mem_band
 	done | sort -g | tee plot.dat
 	gp_script="set terminal png size 700,500; set output 'mbm_mem_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
 	gp_script+="set yr [0:*]; "
@@ -843,12 +824,12 @@ average_all(){
 
 #1-.mem file to parse
 band_from_mem(){
-	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$4;} ') )
+	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$6;} ') )
 	avg_mb=$( average_discard_outliers samples )
 	echo "$avg_mb * 8 / 1000" | bc
 }
 band_from_mem_all(){
-	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$4;} ') )
+	samples=( $(cat $1 | awk '$1~/TIME/{print sum ; sum=0;} $1~/[0-9]+/{sum+=$6;} ') )
 	avg_mb=$( average_all samples )
 	echo "$avg_mb * 8 / 1000" | bc
 }
@@ -867,6 +848,7 @@ avg_cpu_stats(){
 
 mb_parse(){
 	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
+	echo "conn RPS llc_misses(thousands) llc_use(KB) mem(Gbit/s) net(Gbit/s) lat_avg lat_99" | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
 	for i in "${cli_sort[@]}"; do
 		con=$( echo $i | grep -Eo '[0-9]+' )
 		#net band parse
@@ -888,12 +870,21 @@ mb_parse(){
 			echo "${FUNCNAME[0]}: could not find unit: ${totP}" && return -1
 
 		fi
+		RPS=$( cat $n_file | grep Requests/sec | awk '{print $2}')
+		pavg=$(cat $n_file | grep "Latency" | grep -v -e 'Distribution' | awk '{print $2}')
+		#p99=$(cat $n_file | grep -E "\s+99%\s+" | awk '{print $2}')
+
+		#wrk 2
+		p99=$(cat $n_file | grep -E "\s+99\.000%\s+" | awk '{print $2}')
 		totP=Gbit/s
 
 		#mem_band parse
-		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
-		echo $con $mem_band $totNum
-	done | sort -g | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$6;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
+		llc=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$5;}' | tail -n +2 | awk '{sum += $1} END{print (sum/NR); }')
+		misses=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;}' | tail -n +2 | awk '{sum += $1} END{print (sum/NR); }')
+		echo $con $RPS $misses $llc $mem_band $totNum $pavg $p99
+	done | sort -g | tee -a $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+	return # remove to form graph
 	echo "parsing"
 	gp_script="set terminal png size 700,500; set output '$(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_mbm_cli_band.png';  set datafile separator ' '; set style line 1 linecolor rgb '#0060ad' linetype 1 linewidth 2  pointtype 7 pointsize 1.5; set style line 2 linecolor rgb '#dd181f' linetype 1 linewidth 2 pointtype 5 pointsize 1.5; "
 	gp_script+="set yr [0:*]; "
@@ -905,6 +896,80 @@ mb_parse(){
 	gp_script+=" '$(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat' using 1:3 title 'Network Bandwidth' with linespoints linestyle 2 "
 	debug "gnuplot -e \"${gp_script}\""
 	gnuplot -e "${gp_script}"
+}
+
+mb_parse_cores(){
+	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
+	echo "conn RPS mem(Gbit/s) net(Gbit/s) lat_avg lat_99" | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+	for i in "${cli_sort[@]}"; do
+		con=$( echo $i | grep -Eo '[0-9]+' )
+		#net band parse
+		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
+		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		[ -z "$tot" ] && continue
+		totNum=$( python -c "print ( 8  * $( echo $tot | grep -Eo  '[0-9]+\.?[0-9]*') )" )
+		totP=$( echo $tot | grep -Eo  '[A-Z][A-Z]?' )
+		mb_p='(B|KB|MB|GB)'
+		if [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "MB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "KB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "B" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "GB" ]] ; then
+			totP=${totP}
+		else
+			echo "${FUNCNAME[0]}: could not find unit: ${totP}" && return -1
+
+		fi
+		RPS=$( cat $n_file | grep Requests/sec | awk '{print $2}')
+		pavg=$(cat $n_file | grep "Latency" | grep -v -e 'Distribution' | awk '{print $2}')
+		p99=$(cat $n_file | grep -E "\s+99%\s+" | awk '{print $2}')
+		totP=Gbit/s
+
+		#mem_band parse
+		mem_band=$(awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' $i | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }' )
+		#llc=$( awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' $i | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }' )
+		#echo $con $RPS $llc $mem_band $totNum $pavg $p99
+		echo $con $RPS $mem_band $totNum $pavg $p99
+	done | sort -g | tee -a $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+}
+
+mb_parse_cores_old(){
+	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
+	echo "conn RPS mem(Gbit/s) net(Gbit/s) lat_avg lat_99" | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+	for i in "${cli_sort[@]}"; do
+		con=$( echo $i | grep -Eo '[0-9]+' )
+		#net band parse
+		n_file=$( echo $i | sed 's/\.mem/_band.txt/' )
+		tot=( $(cat $n_file | grep -v Ready | grep Transfer | grep -Eo '[0-9]+\.?[0-9]*[A-Z][A-Z]?' ) )
+		[ -z "$tot" ] && continue
+		totNum=$( python -c "print ( 8  * $( echo $tot | grep -Eo  '[0-9]+\.?[0-9]*') )" )
+		totP=$( echo $tot | grep -Eo  '[A-Z][A-Z]?' )
+		mb_p='(B|KB|MB|GB)'
+		if [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "MB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "KB" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "B" ]] ; then
+			totNum=$(python -c "print(${totNum} / 1024 / 1024 / 1024 )")
+		elif [[ ${totP} =~ $mb_p ]] && [[ ${BASH_REMATCH[1]} == "GB" ]] ; then
+			totP=${totP}
+		else
+			echo "${FUNCNAME[0]}: could not find unit: ${totP}" && return -1
+
+		fi
+		RPS=$( cat $n_file | grep Requests/sec | awk '{print $2}')
+		pavg=$(cat $n_file | grep "Latency" | grep -v -e 'Distribution' | awk '{print $2}')
+		p99=$(cat $n_file | grep -E "\s+99%\s+" | awk '{print $2}')
+		totP=Gbit/s
+
+		#mem_band parse
+		mem_samples=( $(awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;} ' $i ) )
+		mem_band=$( average_discard_outliers mem_samples )
+		mem_band=$( echo "$mem_band / 1000 * 8" | bc )
+		echo $con $RPS $mem_band $totNum $pavg $p99
+	done | sort -g | tee -a $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
 }
 
 

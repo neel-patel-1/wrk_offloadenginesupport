@@ -45,6 +45,31 @@ https_mt_core(){
 	# split https requests between two file versions
 	${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
+
+https_rdt_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R 150000 -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+}
+
+http_rdt_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R 150000 -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+}
+
+http_gzip_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R 150000 -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+}
+
 #offload cores
 axdimm_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
@@ -63,6 +88,15 @@ axdimm_mt_core(){
 	export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/lib
 
 	${engine_wrk} -e qatengine -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
+}
+
+axdimm_rdt_mt_core(){
+	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	export OPENSSL_ENGINES=$AXDIMM_ENGINES
+	export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/lib
+
+	${engine_wrk} --latency -e qatengine -s many_req.lua -t${1} -c${2} -d${3} ${7} https://${4}:${5}
 }
 
 qtls_core(){
@@ -189,7 +223,7 @@ capture_cores_async(){
 #1- method 
 getport(){
 	[ -z "$1" ] && echo "${FUNCNAME[0]}: missing params" && return -1
-	if [ "${1}" = "http" ]; then
+	if [[ "${1}" == http_* ]]; then
 		echo "80"
 	else
 		echo "443"
