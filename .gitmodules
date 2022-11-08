@@ -4,3 +4,6 @@
 [submodule "client_wrks/wrk"]
 	path = client_wrks/wrk
 	url = https://github.com/wg/wrk.git
+[submodule "wrk2"]
+	path = wrk2
+	url = https://github.com/giltene/wrk2.git
