@@ -26,13 +26,8 @@ quick_test(){
 	fi
 	kill_wrkrs
 	start_remote_nginx $enc 10
-	if [ "$enc" = "http" ]; then
-		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} $( getport $enc ) file_256K.txt ${1}_band.txt"
-		capture_core_mt_async $1 10 $2 ${time} ${remote_ip} 80 file_256K.txt ${1}_band.txt
-	else
-		debug "${FUNCNAME[0]}: capture_core_mt_async $1 16 1024 10 ${remote_ip} $( getport $enc ) file_256K.txt ${1}_band.txt"
-		capture_core_mt_async $1 10 $2 ${time} ${remote_ip} 443 file_256K.txt ${1}_band.txt
-	fi
+	debug "${FUNCNAME[0]}: capture_core_mt_async $1 10 $2 ${time} ${remote_ip} $( getport $enc ) file_256K.txt ${1}_band.txt"
+	capture_core_mt_async $1 10 $2 ${time} ${remote_ip} $( getport $enc ) file_256K.txt ${1}_band.txt
 }
 
 quick_file_test(){
@@ -648,11 +643,12 @@ mbm_test(){
 	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing param" && return
 	e=$1
 	file=$2
-	time=10
+	time=30
 	start_remote_nginx $e 10
 	#con=( "1" "2" "3" "4" "6" "10" "16" "64" "76" "88" "100" "110" "120" "130" "140" "150" "170" "200" "220" "256" "384" "496" "512" "750" "850" "950" "1024" "1148" "1400" "1500" "1600" "1700" "1800" "1900" "2048"  )
 	#con=( "1" "2" "4" "8" "16" "32" "64" "128" "256" "512" "1024" "1500" "2048"  )
-	con=(  "16"  "64"  "256" "512" "1024" "1500" )
+	#con=(  "16"  "64"  "256" "512" "1024" "1500" )
+	con=( "1024" )
 	for i in "${con[@]}"; do
 		if [ ! -f "${e}_${i}.mem" ]; then
 			n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )

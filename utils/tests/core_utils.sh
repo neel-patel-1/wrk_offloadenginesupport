@@ -78,6 +78,14 @@ https_gzip_mt_core(){
 	${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
 }
 
+accel_gzip_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+}
+
 #offload cores
 axdimm_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"

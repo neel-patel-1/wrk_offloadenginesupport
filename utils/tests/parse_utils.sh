@@ -848,7 +848,7 @@ avg_cpu_stats(){
 
 mb_parse(){
 	cli_sort=( $(ls -d *.mem | sort -t_ -k2 -g) )
-	echo "conn RPS llc_misses(thousands) llc_use(KB) mem(Gbit/s) net(Gbit/s) lat_avg lat_99" | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
+	echo "file conn RPS llc_misses(thousands) llc_use(KB) mem(Gbit/s) net(Gbit/s) lat_avg lat_99" | tee $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
 	for i in "${cli_sort[@]}"; do
 		con=$( echo $i | grep -Eo '[0-9]+' )
 		#net band parse
@@ -882,7 +882,7 @@ mb_parse(){
 		mem_band=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$6;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
 		llc=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$5;}' | tail -n +2 | awk '{sum += $1} END{print (sum/NR); }')
 		misses=$(cat $i | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$4;}' | tail -n +2 | awk '{sum += $1} END{print (sum/NR); }')
-		echo $con $RPS $misses $llc $mem_band $totNum $pavg $p99
+		echo $i $con $RPS $misses $llc $mem_band $totNum $pavg $p99
 	done | sort -g | tee -a $(basename $(pwd) | grep -Eo '[^.]+' | head -n 1)_plot.dat
 	return # remove to form graph
 	echo "parsing"
