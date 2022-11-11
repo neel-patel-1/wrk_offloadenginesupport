@@ -15,7 +15,19 @@ export enc=( "ktls" "https" "axdimm" "qtls" )
 export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
 export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
-#start a quick test
+#start a quick test 1-folder name
+multi_many_file_test(){
+	time=60
+	encs=( "https" "http" "axdimm" "qtls" "ktls" )
+	mkdir ${1}
+	cd ${1}
+	for enc in "${encs[@]}";
+	do
+		capture_core_mt_async ${enc} 16 1024 ${time} ${remote_ip} $( getport $enc ) na ${enc}_band.txt
+		wait
+	done
+
+}
 quick_test(){
 	enc=$1
 	[ -z "$2" ] && return	

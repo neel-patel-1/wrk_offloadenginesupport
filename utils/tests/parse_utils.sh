@@ -4,6 +4,14 @@ source $WRK_ROOT/vars/env.src
 
 source ${test_dir}/debug_utils.sh
 
+# 1 - file to parse
+rps_nband_lat_99_from_file(){
+	lat_99=$(grep 99% ${1} | awk '{print $2}')
+	lat_avg=$(grep Latency ${1} | head -n 1 | awk '{print $2}')
+	band=$(grep Transfer/sec ${1} | awk '{print $2}' )
+	rps=$(grep Requests/sec ${1} | awk '{print $2}' )
+	echo "$1,$rps,$band,$lat_avg,$lat_99"
+}
 # given a "perf_file" and "p_event" (and optional param "search_name" for events whose name differs in perf), extract the event from the file and print it
 single_perf_event_single_file(){
 	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params"

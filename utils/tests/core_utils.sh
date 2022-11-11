@@ -19,7 +19,7 @@ http_mt_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
-	${default_wrk} -t${1} -c${2}  -d${3} ${7} http://${4}:${5}/${6}
+	${default_wrk} --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}/${6}
 }
 
 https_core(){
@@ -43,7 +43,7 @@ https_mt_core(){
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
+	${default_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
 }
 
 https_rdt_mt_core(){
@@ -67,7 +67,8 @@ http_gzip_mt_core(){
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+	#${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
 }
 
 https_gzip_mt_core(){
@@ -83,7 +84,8 @@ accel_gzip_mt_core(){
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+	#${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:80
 }
 
 #offload cores
@@ -103,7 +105,7 @@ axdimm_mt_core(){
 	export OPENSSL_ENGINES=$AXDIMM_ENGINES
 	export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/lib
 
-	${engine_wrk} -e qatengine -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
+	${engine_wrk} -e qatengine --latency -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
 
 axdimm_rdt_mt_core(){
@@ -137,7 +139,7 @@ qtls_mt_core(){
 	sudo env \
 	OPENSSL_ENGINES=$OPENSSL_LIBS/engines-1.1 \
 	LD_LIBRARY_PATH=$OPENSSL_LIBS \
-	${engine_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
+	${engine_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
 }
 
 qtlsdbg_core(){
@@ -167,7 +169,7 @@ ktls_mt_core(){
 	export LD_LIBRARY_PATH=$ktls_drop_ossl
 	#debug "$(ldd ${ktls_drop_wrk})"
 	debug "${FUNCNAME[0]}: $ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
-	$ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}
+	$ktls_drop_wrk --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
 	#${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
 
@@ -189,7 +191,7 @@ capture_core_mt_async(){
 	[ -z "${7}" ] && echo "${FUNCNAME[0]}: missing params"
 	#start remote server
 	debug "${FUNCNAME[0]}: method:$1 core:$2 clients:$3 duration:$4 ip:$5 port:$6 object:$7 wrk_stats:$8 additional:$9"
-	${1}_mt_core $2  $3 $4 $5 $6 ${7} $9 > $8 &
+	${1}_mt_core $2  $3 $4 $5 $( getport $1 ) ${7} $9 > $8 &
 	debug "${FUNCNAME[0]}: $2 threads with $3 clients started ..."
 }
 
@@ -239,7 +241,7 @@ capture_cores_async(){
 #1- method 
 getport(){
 	[ -z "$1" ] && echo "${FUNCNAME[0]}: missing params" && return -1
-	if [[ "${1}" == http_* ]]; then
+	if [[ "${1}" == http_* ]] || [[ "${1}" == "http" ]]; then
 		echo "80"
 	else
 		echo "443"
