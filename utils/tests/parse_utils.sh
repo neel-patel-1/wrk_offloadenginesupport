@@ -10,19 +10,36 @@ rps_nband_lat_99_from_file(){
 	lat_avg=$(grep Latency ${1} | head -n 1 | awk '{print $2}')
 	band=$(grep Transfer/sec ${1} | awk '{print $2}' )
 	rps=$(grep Requests/sec ${1} | awk '{print $2}' )
-	echo "$1,$rps,$band,$lat_avg,$lat_99"
+	echo "$rps,$band,$lat_avg,$lat_99"
 }
 
 #1 - file to parse
 ipc_mem_band_from_file(){
 	avg_ipc=$(cat $1 | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$3;} ' | tail -n +2 | awk '{sum += $1} END{print sum/NR }')
 	avg_mem=$(cat $1 | awk '$1~/TIME/{if(sum !=0 ){ print sum }; sum=0;} $1~/[0-9]+/{sum+=$6;} ' | tail -n +2 | awk '{sum += $1} END{print 8*(sum/NR)/1000 }')
-	echo "$1, $avg_ipc, $avg_mem"
+	echo "$avg_ipc, $avg_mem"
 }
 #1 - file to parse
 cpu_util_from_raw(){
 	awk 'BEGIN{sum=0;} NR>1{sum+=$1} END{print sum/(NR-1)}' ${1}
 }
+
+# be in the directory
+parse_many_file_file(){
+	ipc_mem=$( ipc_mem_band_from_file $1_multi_file.mem )
+	rps_nband_lat_99=$( rps_nband_lat_99_from_file $1_band.txt)
+	avg_cpu=$( cpu_util_from_raw $1_cpu_util )
+	echo "$1,$rps_nband_lat_99,$ipc_mem,$avg_cpu"
+}
+
+parse_many_file_test(){
+	encs=( "https" "http" "axdimm" "qtls" "ktls" )
+	for enc in "${encs[@]}";
+	do
+		parse_many_file_file ${enc}
+	done
+}
+
 # given a "perf_file" and "p_event" (and optional param "search_name" for events whose name differs in perf), extract the event from the file and print it
 single_perf_event_single_file(){
 	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params"
