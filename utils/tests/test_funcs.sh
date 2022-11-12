@@ -23,7 +23,20 @@ multi_many_file_test(){
 	cd ${1}
 	for enc in "${encs[@]}";
 	do
+		start_remote_nginx $enc 10
+		n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )
 		capture_core_mt_async ${enc} 16 1024 ${time} ${remote_ip} $( getport $enc ) na ${enc}_band.txt
+		ssh ${remote_host} "sudo rm -rf ${enc}_multi_file.mem; sudo pqos -t ${time} -i1 -I -p \"mbl:[${n_tds}];llc:[${n_tds}];\" -o ${enc}_multi_file.mem " &
+
+		for i in `seq 1 $((time / 2)) `;
+		do
+			ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" >> ${enc}_cpu_util
+			sleep 1
+		done
+
+		wait
+		scp ${remote_host}:${enc}_multi_file.mem .
+
 		wait
 	done
 
