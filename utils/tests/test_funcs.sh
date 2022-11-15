@@ -17,8 +17,36 @@ export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
 #start a quick test 1-folder name
 multi_many_file_test(){
-	time=60
+	time=150
 	encs=( "https" "http" "axdimm" "qtls" "ktls" )
+	mkdir ${1}
+	cd ${1}
+	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} "
+	for enc in "${encs[@]}";
+	do
+		start_remote_nginx $enc 10
+		n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )
+		capture_core_mt_async ${enc} 16 1024 ${time} ${remote_ip} $( getport $enc ) na ${enc}_band.txt
+		ssh ${remote_host} "sudo rm -rf ${enc}_multi_file.mem; sudo pqos -t ${time} -i1 -I -p \"mbl:[${n_tds}];llc:[${n_tds}];\" -o ${enc}_multi_file.mem " &
+
+		for i in `seq 1 $((time / 2)) `;
+		do
+			ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" >> ${enc}_cpu_util
+			sleep 1
+		done
+
+		wait
+		scp ${remote_host}:${enc}_multi_file.mem .
+
+		wait
+	done
+
+}
+
+multi_many_file_test_constrps(){
+	time=5
+	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
+	export RPS=150000
 	mkdir ${1}
 	cd ${1}
 	for enc in "${encs[@]}";
@@ -41,6 +69,47 @@ multi_many_file_test(){
 	done
 
 }
+
+multi_many_compression_file_test(){
+	time=10
+	encs=( "http_gzip" "accel_gzip" )
+	#encs=( "accel_gzip" )
+	[ -z "${1}" ] && echo "FSIZE Mising : \$1" && return
+	mkdir ${1}
+	cd ${1}
+	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
+	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_compression_corpus.sh ${1} "
+	for enc in "${encs[@]}";
+	do
+		if [ ! -f "${enc}*" ]; then
+			start_remote_nginx $enc 10
+			n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )
+			capture_core_mt_async ${enc} 16 1024 ${time} ${remote_ip} $( getport $enc ) na ${enc}_band.txt
+			ssh ${remote_host} "sudo rm -rf ${enc}_multi_file.mem; sudo pqos -t ${time} -i1 -I -p \"mbl:[${n_tds}];llc:[${n_tds}];\" -o ${enc}_multi_file.mem " &
+
+			for i in `seq 1 $((time / 2)) `;
+			do
+				ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" >> ${enc}_cpu_util
+				sleep 1
+			done
+
+			wait
+			scp ${remote_host}:${enc}_multi_file.mem .
+
+			wait
+		fi
+	done
+}
+
+compress_var_file_sizes(){
+	sizes=( "1K" "16K" "64K" )
+	for s in "${sizes[@]}"; do
+		multi_many_compression_file_test $s
+		cd ../
+	done
+
+}
+
 quick_test(){
 	enc=$1
 	[ -z "$2" ] && return	
@@ -77,6 +146,30 @@ emul_nginx_comp(){
 	echo "emul"
 	ssh ${remote_host} ${remote_root}/ngx_gzip_comp_cpy/start_gzip_emul.sh
 	${default_wrk} -t16 -c1024  -d10 http://${remote_ip}:80/rand_file_4K.txt
+}
+
+#1 - enc
+tls_kvs_test(){
+	time=1
+	enc=${1}
+	[ -f "${enc}_kvs.mem" ] && rm -f ${enc}_kvs.mem
+
+	m_tds=$( ssh ${remote_host} ps aux | grep memcached | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' ) 
+
+	${ROOT_DIR}/scripts/tls_memory_antagonist_load.sh
+
+	${ROOT_DIR}/async_nginx_build/scripts/tls_memory_antagonist_fetch_profile.sh $MEM_SIZE &
+	pid=$!
+
+	sleep 2
+	# while fetching, get memory bandwidth
+	rm -f ${enc}_kvs.mem
+	while kill -0 $pid 2> /dev/null; do
+		ssh ${remote_host} "sudo pqos -t ${time} -i 1 -I -p \"mbl:[${m_tds}];llc:[${m_tds}];\"  " >> ${enc}_kvs.mem # pmon
+	done
+
+	wait
+
 }
 
 quick_rdt_comp(){

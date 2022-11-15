@@ -22,6 +22,46 @@ http_mt_core(){
 	${default_wrk} --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}/${6}
 }
 
+# CONST RPS CORES
+http_const_mt_core(){
+	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	${WRK2} --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+}
+
+https_const_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+	
+}
+
+qtls_const_mt_core(){
+	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	${WRK2} --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+}
+
+ktls_const_mt_core(){
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	debug "${FUNCNAME[0]}: $ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
+	${WRK2} --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+}
+
+axdimm_const_mt_core(){
+	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	export OPENSSL_ENGINES=$AXDIMM_ENGINES
+	export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/lib
+
+	${WRK2} -e qatengine --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+}
+
+
 https_core(){
 	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
@@ -46,12 +86,13 @@ https_mt_core(){
 	${default_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
 }
 
+
 https_rdt_mt_core(){
 	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${WRK2} --latency -R 150000 -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+	${WRK2} --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
 }
 
 http_rdt_mt_core(){
@@ -59,7 +100,7 @@ http_rdt_mt_core(){
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${WRK2} --latency -R 150000 -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+	${WRK2} --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
 }
 
 http_gzip_mt_core(){
@@ -76,7 +117,7 @@ https_gzip_mt_core(){
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${WRK2} --latency -R 150000 -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+	${WRK2} --latency -R ${RPS} -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
 }
 
 accel_gzip_mt_core(){
@@ -142,6 +183,7 @@ qtls_mt_core(){
 	${engine_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
 }
 
+
 qtlsdbg_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
@@ -172,6 +214,7 @@ ktls_mt_core(){
 	$ktls_drop_wrk --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
 	#${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
+
 
 link_core(){
 	export LD_LIBRARY_PATH=$ktls_drop_ossl

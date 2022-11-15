@@ -40,6 +40,24 @@ parse_many_file_test(){
 	done
 }
 
+parse_many_file_compress(){
+	encs=( "accel_gzip" "http_gzip" )
+	for enc in "${encs[@]}";
+	do
+		echo -n "$(basename $(pwd) ),"
+		parse_many_file_file ${enc}
+	done
+}
+
+parse_many_multi_file_compress(){
+	dirs=( $(ls -1 ) )
+	for i in "${dirs[@]}"; do
+		cd $i;
+		parse_many_file_compress
+		cd ../;
+	done
+}
+
 # given a "perf_file" and "p_event" (and optional param "search_name" for events whose name differs in perf), extract the event from the file and print it
 single_perf_event_single_file(){
 	[ -z "$2" ] && echo "${FUNCNAME[0]}: missing params"
