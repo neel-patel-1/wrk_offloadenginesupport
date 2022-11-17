@@ -15,12 +15,47 @@ export enc=( "ktls" "https" "axdimm" "qtls" )
 export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
 export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
 
+co_run(){
+	hw_pref=y
+	enc=http
+	bench=mcf_r
+	shared=n	
+	args=${bench}
+
+	if [ "${hw_pref}" = y ]; then
+		ssh ${remote_host} "sudo wrmsr -a 0x1a4 0"
+		args+=_with_prefetch
+	else
+		ssh ${remote_host} "sudo wrmsr -a 0x1a4 15"
+		args+=_no_prefetch
+	fi
+
+	if [ ! -z "${enc}" ]; then
+		start_remote_nginx ${enc}
+		debug "${FUNC_NAME[0]}:capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_bench_band.txt"
+		capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_${hw_prefetch}_hw_preftch_${bench}_band.txt
+		args+=_using_${enc}_nginx
+	fi
+	if [ "${shared}" = n ]; then
+		ssh ${remote_host} "cd ${remote_root}; mkdir ${enc}_${bench}; cd ${enc}_${bench}; ${remote_root}/scripts/spec/10_mcf.sh sep"
+		args+=_running_on_different_physical_cores
+	else
+		ssh ${remote_host} "${remote_root}/scripts/spec/10_mcf.sh shared ${args}"
+		args+=_running_on_shared_physical_cores
+	fi
+	if [ ! -z "${enc}" ]; then
+		kill_wrkrs
+	fi
+}
+
 #start a quick test 1-folder name
 multi_many_file_test(){
 	time=150
-	encs=( "https" "http" "axdimm" "qtls" "ktls" )
+	#encs=( "https" "http" "axdimm" "qtls" "ktls" )
+	encs=( "axdimm" )
 	mkdir ${1}
 	cd ${1}
+	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} "
 	for enc in "${encs[@]}";
 	do
@@ -44,11 +79,15 @@ multi_many_file_test(){
 }
 
 multi_many_file_test_constrps(){
-	time=5
+	time=150
 	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
-	export RPS=150000
+	[ -z "${2}" ] && echo "No RPS specified" && return
+	export RPS=${2}
 	mkdir ${1}
 	cd ${1}
+	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
+	debug "${FUNCNAME[0]}: ssh ${remote_host} \"${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} \""
+	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} "
 	for enc in "${encs[@]}";
 	do
 		start_remote_nginx $enc 10
@@ -71,12 +110,17 @@ multi_many_file_test_constrps(){
 }
 
 multi_many_compression_file_test(){
-	time=10
+	time=150
 	encs=( "http_gzip" "accel_gzip" )
-	#encs=( "accel_gzip" )
-	[ -z "${1}" ] && echo "FSIZE Mising : \$1" && return
-	mkdir ${1}
-	cd ${1}
+	#encs=(  "accel_gzip" )
+	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
+	if [ -d "${1}" ]; then
+		cd ${1}
+	else
+		mkdir ${1}
+		cd ${1}
+	fi
+
 	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_compression_corpus.sh ${1} "
 	for enc in "${encs[@]}";
@@ -102,10 +146,36 @@ multi_many_compression_file_test(){
 }
 
 compress_var_file_sizes(){
-	sizes=( "1K" "16K" "64K" )
+	sizes=( "1K" "4K" "16K" "32K" "64K" )
 	for s in "${sizes[@]}"; do
 		multi_many_compression_file_test $s
 		cd ../
+	done
+
+}
+
+multi_many_constrps_var_files(){
+	# maximum rps found for sw https for a given file size
+	declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
+		                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
+	for s in "${!sizes[@]}"; do
+		if [ ! -d "$s" ]; then
+			multi_many_file_test_constrps $s ${sizes[$s]}
+			cd ../
+		fi
+	done
+
+}
+
+multi_many_file_var(){
+	# maximum rps found for sw https for a given file size
+	declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
+		                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
+	for s in "${!sizes[@]}"; do
+		if [ ! -d "$s" ]; then
+			multi_many_file_test $s
+			cd ../
+		fi
 	done
 
 }
@@ -171,6 +241,7 @@ tls_kvs_test(){
 	wait
 
 }
+
 
 quick_rdt_comp(){
 	enc=$1

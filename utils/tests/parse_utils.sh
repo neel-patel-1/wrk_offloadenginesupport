@@ -6,7 +6,7 @@ source ${test_dir}/debug_utils.sh
 
 # 1 - file to parse
 rps_nband_lat_99_from_file(){
-	lat_99=$(grep -E '\s+99%' ${1} | awk '{print $2}')
+	lat_99=$(grep -E '\s+(99%|99.000%)' ${1} | awk '{print $2}')
 	lat_avg=$(grep Latency ${1} | head -n 1 | awk '{print $2}')
 	band=$(grep Transfer/sec ${1} | awk '{print $2}' )
 	rps=$(grep Requests/sec ${1} | awk '{print $2}' )
@@ -26,9 +26,9 @@ cpu_util_from_raw(){
 
 # be in the directory
 parse_many_file_file(){
-	ipc_mem=$( ipc_mem_band_from_file $1_multi_file.mem )
-	rps_nband_lat_99=$( rps_nband_lat_99_from_file $1_band.txt)
-	avg_cpu=$( cpu_util_from_raw $1_cpu_util )
+	ipc_mem=$( ipc_mem_band_from_file ${1}*_multi_file.mem )
+	rps_nband_lat_99=$( rps_nband_lat_99_from_file ${1}*_band.txt)
+	avg_cpu=$( cpu_util_from_raw ${1}*_cpu_util )
 	echo "$1,$rps_nband_lat_99,$ipc_mem,$avg_cpu"
 }
 
@@ -36,7 +36,7 @@ parse_many_file_test(){
 	encs=( "https" "http" "axdimm" "qtls" "ktls" )
 	for enc in "${encs[@]}";
 	do
-		parse_many_file_file ${enc}
+		[ ! -z "$( ls ${enc}_*) " ] && parse_many_file_file ${enc}
 	done
 }
 
@@ -54,6 +54,15 @@ parse_many_multi_file_compress(){
 	for i in "${dirs[@]}"; do
 		cd $i;
 		parse_many_file_compress
+		cd ../;
+	done
+}
+
+parse_many_multi_file_(){
+	dirs=( $(ls -1 ) )
+	for i in "${dirs[@]}"; do
+		cd $i;
+		parse_many_file_test
 		cd ../;
 	done
 }
