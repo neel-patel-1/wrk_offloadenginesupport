@@ -19,7 +19,7 @@ http_mt_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
-	${default_wrk} --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}/${6}
+	${default_wrk} --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}
 }
 
 # CONST RPS CORES
@@ -83,7 +83,7 @@ https_mt_core(){
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
 	# split https requests between two file versions
-	${default_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
+	${default_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}
 }
 
 
@@ -155,7 +155,7 @@ axdimm_mt_core(){
 	export OPENSSL_ENGINES=$AXDIMM_ENGINES
 	export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/lib
 
-	${engine_wrk} -e qatengine --latency -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}/${6}
+	${engine_wrk} -e qatengine --latency -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
 }
 
 axdimm_rdt_mt_core(){
@@ -189,7 +189,7 @@ qtls_mt_core(){
 	sudo env \
 	OPENSSL_ENGINES=$OPENSSL_LIBS/engines-1.1 \
 	LD_LIBRARY_PATH=$OPENSSL_LIBS \
-	${engine_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
+	${engine_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}
 }
 
 
@@ -220,7 +220,7 @@ ktls_mt_core(){
 	export LD_LIBRARY_PATH=$ktls_drop_ossl
 	#debug "$(ldd ${ktls_drop_wrk})"
 	debug "${FUNCNAME[0]}: $ktls_drop_wrk -t${1} -c${2}  -d${3} ${7} https://${4}:${5}/${6}"
-	$ktls_drop_wrk --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
+	$ktls_drop_wrk --latency -t${1} -c${2}  -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}
 	#${default_wrk} -t${1} -c${2} -d${3} ${7} https://${4}:${5}/${6}
 }
 
