@@ -10,16 +10,11 @@ source ${test_dir}/remote_utils.sh
 
 export res_dir=${WRK_ROOT}/results
 
-export enc=( "ktls" "https" "axdimm" "qtls" )
-#export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
-export ev=( "unc_m_cas_count.wr" "unc_m_cas_count.rd" )
-export cli_cores=( "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" )
-
 co_run(){
-	hw_pref=y
-	enc=http
+	[ -z "${hw_pref}" ] && hw_pref=y
+	[ -z "${enc}" ] && enc=
 	bench=mcf_r
-	shared=n	
+	[ -z "${shared}" ] && shared=n	
 	args=${bench}
 
 	if [ "${hw_pref}" = y ]; then
@@ -33,19 +28,31 @@ co_run(){
 	if [ ! -z "${enc}" ]; then
 		start_remote_nginx ${enc}
 		debug "${FUNC_NAME[0]}:capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_bench_band.txt"
-		capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_${hw_prefetch}_hw_preftch_${bench}_band.txt
+		sed -i -E "s/\/[A-Z]+_[0-9]+[A-Z]/CDN_file/g" ${WRK_ROOT}/many_req.lua
+		capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_${hw_pref}_hw_preftch_${bench}_band.txt
 		args+=_using_${enc}_nginx
 	fi
 	if [ "${shared}" = n ]; then
-		ssh ${remote_host} "cd ${remote_root}; mkdir ${enc}_${bench}; cd ${enc}_${bench}; ${remote_root}/scripts/spec/10_mcf.sh sep"
 		args+=_running_on_different_physical_cores
+		ssh ${remote_host} "cd ${remote_root} && ./scripts/spec/10_mcf.sh sep ${args}"
 	else
-		ssh ${remote_host} "${remote_root}/scripts/spec/10_mcf.sh shared ${args}"
 		args+=_running_on_shared_physical_cores
+		ssh ${remote_host} "cd ${remote_root} && ./scripts/spec/10_mcf.sh shared ${args}"
 	fi
 	if [ ! -z "${enc}" ]; then
 		kill_wrkrs
 	fi
+}
+
+multi_co_run(){
+	encs=( "http" "https" "axdimm" "ktls" "qtls" )
+	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
+	export hw_pref=n
+	export shared=n
+	for e in "${encs[@]}"; do
+		export enc=$e
+		co_run 
+	done
 }
 
 #start a quick test 1-folder name
