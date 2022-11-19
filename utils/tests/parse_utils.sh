@@ -1233,3 +1233,71 @@ parse_spec_back_cores_cli_sampling(){
 		cd ..
 	done
 }
+
+
+# get non-zero memory bandwidths 
+spec_core_mem_band(){
+	sum=0
+	core_sums=()
+	for i in ${1}/*.mem; do
+		core_sums+=( $(awk '$1~/[0-9]+/{if ($6 > 0){ nz+=1 ; sum+=$6; }} END{print sum/nz}' ${i} ) )
+	done
+	average_all core_sums
+}
+
+spec_core_avg_ipc(){
+	sum=0
+	core_sums=()
+	for i in ${1}/*.mem; do
+		core_sums+=( $(awk '$1~/[0-9]+/{if ($6 > 0){ nz+=1 ; sum+=$3; }} END{print sum/nz}' ${i} ) )
+	done
+	average_all core_sums
+}
+
+spec_core_avg_llc(){
+	core_sums=()
+	for i in ${1}/*.mem; do
+		core_sums+=( $(awk '$1~/[0-9]+/{if ($6 > 0){ nz+=1 ; sum+=$5; }} END{print sum/nz}' ${i} ) )
+	done
+	average_all core_sums
+}
+
+#!
+spec_core_time(){
+	ss=()
+	for i in ${1}/*.csv ; do
+		s=$(grep 505.mcf_r ${i} | head -n 1 | awk -F, '{print $4}')
+		ss+=( $s )
+		#echo "$s"
+	done
+	average_all ss
+
+}
+spec_core_rate(){
+	ss=()
+	for i in ${1}/*.csv ; do
+		s=$(grep 505.mcf_r ${i} | head -n 1 | awk -F, '{print $3}')
+		ss+=( $s )
+		#echo "$s"
+	done
+	average_all ss
+
+}
+
+spec_core_stats(){
+	#encs=( "baseline" "http" "https" "axdimm" "ktls" "qtls" )
+	encs=( "axdimm" )
+	#encs=( "http" )
+	#baseline:
+
+	for enc in "${encs[@]}"; do
+		time=$( spec_core_rate *${enc}_*/result )
+		rate=$( spec_core_time *${enc}_*/result )
+		m_band=$( spec_core_mem_band *${enc}_*/ )
+		ipc=$( spec_core_avg_ipc *${enc}_*/ )
+		llc=$( spec_core_avg_llc *${enc}_*/ )
+		r_n_lat=$( rps_nband_lat_99_from_file *${enc}_*band.txt )
+		# spec time, rate, memory bandwidth
+		echo "${enc},${time},${rate},${m_band},${r_n_lat},${ipc},${llc}"
+	done
+}

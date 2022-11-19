@@ -13,6 +13,7 @@ export res_dir=${WRK_ROOT}/results
 co_run(){
 	[ -z "${hw_pref}" ] && hw_pref=y
 	[ -z "${enc}" ] && enc=
+	[ "${enc}" = "base" ] && enc=
 	bench=mcf_r
 	[ -z "${shared}" ] && shared=n	
 	args=${bench}
@@ -26,26 +27,47 @@ co_run(){
 	fi
 
 	if [ ! -z "${enc}" ]; then
-		start_remote_nginx ${enc}
+		start_remote_nginx ${enc} 10
 		debug "${FUNC_NAME[0]}:capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_bench_band.txt"
-		sed -i -E "s/\/[A-Z]+_[0-9]+[A-Z]/CDN_file/g" ${WRK_ROOT}/many_req.lua
+		sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 		capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_${hw_pref}_hw_preftch_${bench}_band.txt
 		args+=_using_${enc}_nginx
+	else
+		args+=_using_baseline
 	fi
 	if [ "${shared}" = n ]; then
 		args+=_running_on_different_physical_cores
-		ssh ${remote_host} "cd ${remote_root} && ./scripts/spec/10_mcf.sh sep ${args}"
+		ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_mcf.sh sep ${args} && exit "
 	else
 		args+=_running_on_shared_physical_cores
-		ssh ${remote_host} "cd ${remote_root} && ./scripts/spec/10_mcf.sh shared ${args}"
+		#ssh ${remote_host} "cd ${remote_root} && ./scripts/spec/10_mcf.sh shared ${args} && exit "
+		ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_mcf.sh shared ${args} && exit "
 	fi
 	if [ ! -z "${enc}" ]; then
 		kill_wrkrs
 	fi
+	# fetch the dir to make easier
+	scp -r ${remote_host}:${remote_root}/${args} .
 }
 
 multi_co_run(){
-	encs=( "http" "https" "axdimm" "ktls" "qtls" )
+	encs=( "base" "http" "https" "axdimm" "qtls" "ktls" )
+	#encs=( "axdimm" )
+	#encs=( "https" )
+	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
+	export hw_pref=n
+	export shared=n
+	for e in "${encs[@]}"; do
+		export enc=$e
+		co_run 
+	done
+}
+
+multi_co_run_fixed(){
+	export RPS=5500
+	#encs=( "http_const" "https_const" "axdimm_const" "qtls_const" "ktls_const" )
+	encs=( "axdimm_const" )
+	#encs=( "https" )
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
 	export hw_pref=n
 	export shared=n
@@ -57,12 +79,15 @@ multi_co_run(){
 
 #start a quick test 1-folder name
 multi_many_file_test(){
-	time=150
-	#encs=( "https" "http" "axdimm" "qtls" "ktls" )
+	time=15
+	encs=( "http" "https" "axdimm" "qtls" "ktls" )
 	encs=( "axdimm" )
+	#encs=( "axdimm" )
+	#encs=( "axdimm" )
+	ssh ${remote_host} "sudo wrmsr -a 0x1a4 15"
 	mkdir ${1}
 	cd ${1}
-	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
+	#sed -i -E "s/\/([A-Za-z]+_)+([0-9]+[A-Za-z])?/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} "
 	for enc in "${encs[@]}";
 	do
@@ -73,7 +98,7 @@ multi_many_file_test(){
 
 		for i in `seq 1 $((time / 2)) `;
 		do
-			ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" >> ${enc}_cpu_util
+			ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$6} END{print sum}'" >> ${enc}_cpu_util
 			sleep 1
 		done
 
