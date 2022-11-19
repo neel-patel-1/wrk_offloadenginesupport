@@ -135,7 +135,7 @@ qat_gzip_mt_core(){
 	sudo env \
 	OPENSSL_ENGINES=$OPENSSL_LIBS/engines-1.1 \
 	LD_LIBRARY_PATH=$OPENSSL_LIBS \
-	${engine_wrk} --latency -t${1} -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} https://${4}:${5}/${6}
+	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}/${6}
 }
 
 #offload cores
@@ -293,7 +293,7 @@ capture_cores_async(){
 #1- method 
 getport(){
 	[ -z "$1" ] && echo "${FUNCNAME[0]}: missing params" && return -1
-	if [[ "${1}" == http_* ]] || [[ "${1}" == "http" ]]|| [[ "${1}" == "accel_gzip" ]]; then
+	if [[ "${1}" == http_* ]] || [[ "${1}" == "http" ]]|| [[ "${1}" == "accel_gzip" ]] || [[ "${1}" == "qat_gzip" ]] ; then
 		echo "80"
 	else
 		echo "443"

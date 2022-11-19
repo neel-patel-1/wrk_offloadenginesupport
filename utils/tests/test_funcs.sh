@@ -29,7 +29,7 @@ co_run(){
 	if [ ! -z "${enc}" ]; then
 		start_remote_nginx ${enc} 10
 		debug "${FUNC_NAME[0]}:capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_bench_band.txt"
-		sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
+		#sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 		capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_${hw_pref}_hw_preftch_${bench}_band.txt
 		args+=_using_${enc}_nginx
 	else
@@ -52,8 +52,6 @@ co_run(){
 
 multi_co_run(){
 	encs=( "base" "http" "https" "axdimm" "qtls" "ktls" )
-	#encs=( "axdimm" )
-	#encs=( "https" )
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
 	export hw_pref=n
 	export shared=n
@@ -64,10 +62,9 @@ multi_co_run(){
 }
 
 multi_co_run_fixed(){
-	export RPS=5500
-	#encs=( "http_const" "https_const" "axdimm_const" "qtls_const" "ktls_const" )
-	encs=( "axdimm_const" )
-	#encs=( "https" )
+	export RPS=6000
+	#encs=( "http_const" "https_const" "axdimm_const" "qtls_const" "ktls_const" "base" )
+	encs=(  "axdimm_const" )
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
 	export hw_pref=n
 	export shared=n
@@ -142,9 +139,10 @@ multi_many_file_test_constrps(){
 }
 
 multi_many_compression_file_test(){
-	time=150
-	encs=( "http_gzip" "accel_gzip" )
-	#encs=(  "accel_gzip" )
+	time=10
+	#encs=( "http_gzip" "accel_gzip" "qat_gzip" )
+	#encs=( "qat_gzip" )
+	encs=( "http_gzip" )
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
 	if [ -d "${1}" ]; then
 		cd ${1}
@@ -178,7 +176,8 @@ multi_many_compression_file_test(){
 }
 
 compress_var_file_sizes(){
-	sizes=( "1K" "4K" "16K" "32K" "64K" )
+	#sizes=( "1K" "4K" "16K" "32K" "64K" )
+	sizes=( "1K" "4K" )
 	for s in "${sizes[@]}"; do
 		multi_many_compression_file_test $s
 		cd ../

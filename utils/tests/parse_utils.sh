@@ -1286,8 +1286,8 @@ spec_core_rate(){
 
 spec_core_stats(){
 	#encs=( "baseline" "http" "https" "axdimm" "ktls" "qtls" )
-	encs=( "axdimm" )
-	#encs=( "http" )
+	encs=( "baseline" "http" "https" "axdimm" "ktls" "qtls" )
+	#encs=( "axdimm" )
 	#baseline:
 
 	for enc in "${encs[@]}"; do
