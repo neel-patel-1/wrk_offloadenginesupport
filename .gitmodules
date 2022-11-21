@@ -7,3 +7,6 @@
 [submodule "wrk2"]
 	path = wrk2
 	url = https://github.com/giltene/wrk2.git
+[submodule "wrk2_offload_engine"]
+	path = wrk2_offload_engine
+	url = git@github.com:neelpatelbiz/wrk2_offload_engine.git
