@@ -14,9 +14,11 @@ co_run(){
 	[ -z "${hw_pref}" ] && hw_pref=y
 	[ -z "${enc}" ] && enc=
 	[ "${enc}" = "base" ] && enc=
-	bench=mcf_r
+	[ -z "${bench}" ] && bench=mcf_r
+	#bench=deepsjeng_r
 	[ -z "${shared}" ] && shared=n	
 	args=${bench}
+	echo "testing ${bench} ..."
 
 	if [ "${hw_pref}" = y ]; then
 		ssh ${remote_host} "sudo wrmsr -a 0x1a4 0"
@@ -29,7 +31,7 @@ co_run(){
 	if [ ! -z "${enc}" ]; then
 		start_remote_nginx ${enc} 10
 		debug "${FUNC_NAME[0]}:capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_bench_band.txt"
-		#sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
+		sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_12345K/g" ${WRK_ROOT}/many_req.lua
 		capture_core_mt_async ${enc} 16 1024 8h ${remote_ip} $( getport $enc ) na ${enc}_${hw_pref}_hw_preftch_${bench}_band.txt
 		args+=_using_${enc}_nginx
 	else
@@ -37,11 +39,12 @@ co_run(){
 	fi
 	if [ "${shared}" = n ]; then
 		args+=_running_on_different_physical_cores
-		ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_mcf.sh sep ${args} && exit "
+		ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_${bench}.sh sep ${args} && exit "
+		#ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_deepsjeng_r.sh sep ${args} && exit "
 	else
 		args+=_running_on_shared_physical_cores
-		#ssh ${remote_host} "cd ${remote_root} && ./scripts/spec/10_mcf.sh shared ${args} && exit "
-		ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_mcf.sh shared ${args} && exit "
+		ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_${bench}.sh shared ${args} && exit "
+		#ssh ${remote_host} "</dev/null >/dev/null 2>/dev/null ${remote_root}/scripts/spec/10_deepsjeng_r.sh shared ${args} && exit "
 	fi
 	if [ ! -z "${enc}" ]; then
 		kill_wrkrs
@@ -55,6 +58,7 @@ multi_co_run(){
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
 	export hw_pref=n
 	export shared=n
+	export bench=lbm_r
 	for e in "${encs[@]}"; do
 		export enc=$e
 		co_run 
@@ -62,12 +66,15 @@ multi_co_run(){
 }
 
 multi_co_run_fixed(){
-	export RPS=6000
-	#encs=( "http_const" "https_const" "axdimm_const" "qtls_const" "ktls_const" "base" )
-	encs=(  "axdimm_const" )
+	export RPS=3000
+	#encs=( "base" "https_const" )
+	encs=( "ktls_const" )
+	export bench=lbm_r
+	#encs=( "base" "https_const" )
+	#encs=( "https_const" )
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_cdn_files.sh "
 	export hw_pref=n
-	export shared=n
+	export shared=y
 	for e in "${encs[@]}"; do
 		export enc=$e
 		co_run 
@@ -110,6 +117,7 @@ multi_many_file_test(){
 multi_many_file_test_constrps(){
 	time=150
 	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
+	encs=( "axdimm_const" )
 	[ -z "${2}" ] && echo "No RPS specified" && return
 	export RPS=${2}
 	mkdir ${1}
@@ -138,11 +146,11 @@ multi_many_file_test_constrps(){
 
 }
 
-multi_many_compression_file_test(){
-	time=10
-	#encs=( "http_gzip" "accel_gzip" "qat_gzip" )
-	#encs=( "qat_gzip" )
-	encs=( "http_gzip" )
+multi_many_compression_file_const_test(){
+	time=150
+	#encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
+	encs=( "accel_gzip_const"  )
+	RPS=${2}
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
 	if [ -d "${1}" ]; then
 		cd ${1}
@@ -163,7 +171,43 @@ multi_many_compression_file_test(){
 
 			for i in `seq 1 $((time / 2)) `;
 			do
-				ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$5} END{print sum}'" >> ${enc}_cpu_util
+				ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$6} END{print sum}'" >> ${enc}_cpu_util
+				sleep 1
+			done
+
+			wait
+			scp ${remote_host}:${enc}_multi_file.mem .
+
+			wait
+		fi
+	done
+}
+multi_many_compression_file_test(){
+	time=150
+	#encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
+	encs=( "accel_gzip"   )
+	#encs=( "accel_gzip" )
+	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
+	if [ -d "${1}" ]; then
+		cd ${1}
+	else
+		mkdir ${1}
+		cd ${1}
+	fi
+
+	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
+	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_compression_corpus.sh ${1} "
+	for enc in "${encs[@]}";
+	do
+		if [ ! -f "${enc}*" ]; then
+			start_remote_nginx $enc 10
+			n_tds=$( ssh ${remote_host} ps aux | grep nginx | grep -v grep | awk '{print $2}' | tr -s '\n' ',' | sed 's/,$/\n/' )
+			capture_core_mt_async ${enc} 16 1024 ${time} ${remote_ip} $( getport $enc ) na ${enc}_band.txt
+			ssh ${remote_host} "sudo rm -rf ${enc}_multi_file.mem; sudo pqos -t ${time} -i1 -I -p \"mbl:[${n_tds}];llc:[${n_tds}];\" -o ${enc}_multi_file.mem " &
+
+			for i in `seq 1 $((time / 2)) `;
+			do
+				ssh ${remote_host} "top -b -n1 -w512 | grep nginx | awk 'BEGIN{sum=0;} {sum+=\$6} END{print sum}'" >> ${enc}_cpu_util
 				sleep 1
 			done
 
@@ -177,10 +221,22 @@ multi_many_compression_file_test(){
 
 compress_var_file_sizes(){
 	#sizes=( "1K" "4K" "16K" "32K" "64K" )
-	sizes=( "1K" "4K" )
+	#sizes=( "1K" "4K" )
+	sizes=( "4K" )
 	for s in "${sizes[@]}"; do
 		multi_many_compression_file_test $s
 		cd ../
+	done
+
+}
+
+
+compress_var_file_sizes_const(){
+	declare -A sizes=( ["4K"]=77000 )
+	#declare -A sizes=( ["1K"]=140000 ["4K"]=77000 )
+	#declare -A sizes=( ["16K"]=26000 )
+	for i in "${!sizes[@]}"; do
+		multi_many_compression_file_const_test ${i} ${sizes[$i]}
 	done
 
 }

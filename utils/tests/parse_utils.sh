@@ -41,7 +41,8 @@ parse_many_file_test(){
 }
 
 parse_many_file_compress(){
-	encs=( "accel_gzip" "http_gzip" )
+	#encs=( "qat_gzip" "accel_gzip" "http_gzip" )
+	encs=( "accel_gzip"  )
 	for enc in "${encs[@]}";
 	do
 		echo -n "$(basename $(pwd) ),"
@@ -1265,8 +1266,9 @@ spec_core_avg_llc(){
 #!
 spec_core_time(){
 	ss=()
+	[ -z "${bench}" ] && bench=505.mcf_r
 	for i in ${1}/*.csv ; do
-		s=$(grep 505.mcf_r ${i} | head -n 1 | awk -F, '{print $4}')
+		s=$(grep ${bench} ${i} | head -n 1 | awk -F, '{print $4}')
 		ss+=( $s )
 		#echo "$s"
 	done
@@ -1275,8 +1277,9 @@ spec_core_time(){
 }
 spec_core_rate(){
 	ss=()
+	[ -z "${bench}" ] && bench=505.mcf_r
 	for i in ${1}/*.csv ; do
-		s=$(grep 505.mcf_r ${i} | head -n 1 | awk -F, '{print $3}')
+		s=$(grep ${bench} ${i} | head -n 1 | awk -F, '{print $3}')
 		ss+=( $s )
 		#echo "$s"
 	done
@@ -1286,10 +1289,16 @@ spec_core_rate(){
 
 spec_core_stats(){
 	#encs=( "baseline" "http" "https" "axdimm" "ktls" "qtls" )
-	encs=( "baseline" "http" "https" "axdimm" "ktls" "qtls" )
-	#encs=( "axdimm" )
+	#encs=( "baseline" "axdimm_const" "ktls_const" "qtls_const" "http_const" "https_const" )
+	encs=( "ktls_const" )
+	#encs=( "http_const" )
+	#encs=( "ktls_const" "qtls_const" )
+	#encs=( "https_const"  "baseline"  )
+	echo " DID YOU SCP ALL RESULT DIRECTORIES FROM DUT ? "
 	#baseline:
+	export bench=${1}
 
+	echo "parsing"
 	for enc in "${encs[@]}"; do
 		time=$( spec_core_rate *${enc}_*/result )
 		rate=$( spec_core_time *${enc}_*/result )

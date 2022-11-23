@@ -112,7 +112,23 @@ http_gzip_mt_core(){
 	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
 }
 
+http_gzip_const_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R ${RPS} -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+}
+
 https_gzip_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R ${RPS} -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+}
+
+https_gzip_const_mt_core(){
 	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "80" ] && echo "Non default http port: $5"
 	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
@@ -129,13 +145,30 @@ accel_gzip_mt_core(){
 	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:80
 }
 
+accel_gzip_const_mt_core(){
+	[ -z "$5" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "80" ] && echo "Non default http port: $5"
+	export LD_LIBRARY_PATH=$cli_ossls/openssl-1.1.1f
+	# split https requests between two file versions
+	${WRK2} --latency -R ${RPS} -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
+}
+
 qat_gzip_mt_core(){
 	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
 	[ "$5" != "443" ] && echo "Non default https port: $5"
 	sudo env \
 	OPENSSL_ENGINES=$OPENSSL_LIBS/engines-1.1 \
 	LD_LIBRARY_PATH=$OPENSSL_LIBS \
-	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}/${6}
+	${default_wrk} --latency  -t${1} -H"accept-encoding: gzip, deflate" -c${2} -s ${WRK_ROOT}/many_req.lua -d${3} ${7} http://${4}:${5}
+}
+
+qat_gzip_const_mt_core(){
+	[ -z "$6" ] && echo "${FUNCNAME[0]}: missing params"
+	[ "$5" != "443" ] && echo "Non default https port: $5"
+	sudo env \
+	OPENSSL_ENGINES=$OPENSSL_LIBS/engines-1.1 \
+	LD_LIBRARY_PATH=$OPENSSL_LIBS \
+	${WRK2} --latency -R ${RPS} -t${1} -H"accept-encoding: gzip, deflate" -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} http://${4}:${5}
 }
 
 #offload cores
@@ -293,7 +326,7 @@ capture_cores_async(){
 #1- method 
 getport(){
 	[ -z "$1" ] && echo "${FUNCNAME[0]}: missing params" && return -1
-	if [[ "${1}" == http_* ]] || [[ "${1}" == "http" ]]|| [[ "${1}" == "accel_gzip" ]] || [[ "${1}" == "qat_gzip" ]] ; then
+	if [[ "${1}" == http_* ]] || [[ "${1}" == "http" ]]|| [[ "${1}" == "accel_gzip" ]] || [[ "${1}" == "accel_gzip_const" ]] || [[ "${1}" == "qat_gzip_const" ]]  || [[ "${1}" == "qat_gzip" ]] ; then
 		echo "80"
 	else
 		echo "443"
