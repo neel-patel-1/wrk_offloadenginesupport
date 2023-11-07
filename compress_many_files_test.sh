@@ -1,5 +1,5 @@
 #!/bin/bash
-dut=192.168.1.2
+source comp_vars.sh
 
 file_set=rand_file_1M_
 file=${file_set}1.txt

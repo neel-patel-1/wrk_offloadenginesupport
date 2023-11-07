@@ -1,5 +1,5 @@
 #!/bin/bash
-dut=192.168.1.2
+source comp_vars.sh
 
 file=rand_file_4K.txt
 
