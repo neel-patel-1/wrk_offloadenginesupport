@@ -1,5 +1,30 @@
-# Nginx Encryption Benchmarking Tool
+## SmartDIMM:  In-Memory Acceleration of Upper Layer I/O Protocols Artifact
 
+This repository contains scripts for SmartDIMM MICRO'23 artifact evaluation of the 
+**SmartDIMM:  In-Memory Acceleration of Upper Layer I/O Protocols Artifact** paper by 
+Neel Patel, Amin Mamandipoor, and Mohammad Alian
+
+### Evaluation instructions ###
+
+* start by executing `git submodule update --init --recursive` to fetch all submodules and dependencies
+
+The scripts in this paper can be used to reproduce:
+* Figure 10: SmartDIMM Scratchpad Utilization
+* Figure 11: Encrypted Nginx Performance (Nginx Server for Encrypted Files) “%” corresponds to the runtime 
+increase of SPEC workload or (De)Compression throughput loss of the 
+corunning LZBench benchmark
+* Figure 12: SmartDIMM offloads corresponding to the "conditional" access case
+when DRAM refreshes offload the data movement of a compressed page, "random"
+accesses (when a target row refresh must be issued), and CPU fallbacks when
+the application's compression demands exceed the capacity of SmartDIMM
+
+### Directory Structure
+* `wrk_offloadenginesupport` workload generation scripts based on the `wrk` http request generation tool
+* `async_nginx_build` nginx server configuration files and builds for baseline http, https, and accelerated https using QAT and kTLS
+* `Near-Memory-Sensitivity-Analysis` SmartDIMM sensitivity analysis examining the resource utilization for different server loads
+
+
+# Nginx Encryption/Compression Workload Generation
 Tested on
 ---------
 Ubuntu 20.04
@@ -8,7 +33,14 @@ Kernel 5.13.0-44-generic
 Bluefield 2 Mellanox NICs: part number MBF2M516A-CEEOT
 Crypto PCIe Accelerators: Intel C62x Chipset QuickAssist Technology
 
+* Figure 10:
+```
 
+```
+
+* Figure 11:
+```
+```
 
 ## Basic Usage
 
