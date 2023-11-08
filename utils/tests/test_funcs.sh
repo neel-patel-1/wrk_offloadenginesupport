@@ -147,7 +147,7 @@ multi_many_file_test_constrps(){
 }
 
 multi_many_compression_file_const_test(){
-	time=150
+	time=10
 	#encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
 	encs=( "accel_gzip_const"  )
 	RPS=${2}
@@ -183,7 +183,7 @@ multi_many_compression_file_const_test(){
 	done
 }
 multi_many_compression_file_test(){
-	time=150
+	time=10
 	#encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
 	encs=( "accel_gzip"   )
 	#encs=( "accel_gzip" )
@@ -222,7 +222,7 @@ multi_many_compression_file_test(){
 compress_var_file_sizes(){
 	#sizes=( "1K" "4K" "16K" "32K" "64K" )
 	#sizes=( "1K" "4K" )
-	sizes=( "4K" )
+	sizes=( "16K" )
 	for s in "${sizes[@]}"; do
 		multi_many_compression_file_test $s
 		cd ../
@@ -232,9 +232,9 @@ compress_var_file_sizes(){
 
 
 compress_var_file_sizes_const(){
-	declare -A sizes=( ["4K"]=77000 )
+	# declare -A sizes=( ["4K"]=77000 )
 	#declare -A sizes=( ["1K"]=140000 ["4K"]=77000 )
-	#declare -A sizes=( ["16K"]=26000 )
+	declare -A sizes=( ["4K"]=77000 ["16K"]=26000 )
 	for i in "${!sizes[@]}"; do
 		multi_many_compression_file_const_test ${i} ${sizes[$i]}
 	done

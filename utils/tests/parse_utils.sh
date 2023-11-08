@@ -40,6 +40,15 @@ parse_many_file_test(){
 	done
 }
 
+parse_many_file_compress_const(){
+	#encs=( "qat_gzip" "accel_gzip" "http_gzip" )
+	encs=( "accel_gzip_const"  )
+	for enc in "${encs[@]}";
+	do
+		echo -n "$(basename $(pwd) ),"
+		parse_many_file_file ${enc}
+	done
+}
 parse_many_file_compress(){
 	#encs=( "qat_gzip" "accel_gzip" "http_gzip" )
 	encs=( "accel_gzip"  )
