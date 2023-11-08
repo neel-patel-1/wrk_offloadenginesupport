@@ -1,9 +1,13 @@
 ### Compressed File Server Experiments
-* dut setup:
+* dut setup: (e.g., run on pollux)
 * from async_nginx_build
 ```
 ./scripts/configure.sh
 make default # build baseline nginx
+
+# setup server with compressed files
+./scripts/L5P_DRAM_Experiments/setup_server.sh 16K
+./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
 
 # gzip build
 cd nginx_compress_emul
@@ -11,10 +15,7 @@ cd nginx_compress_emul
 # gzip emulation build
 ./emul_build.sh
 
-# setup server with compressed files
-./scripts/L5P_DRAM_Experiments/setup_cdn_files.sh
 
-./scripts/L5P_DRAM_Experiments/setup_server.sh <file_size> <number_of_files_(currently not used)>
 
 ```
 
