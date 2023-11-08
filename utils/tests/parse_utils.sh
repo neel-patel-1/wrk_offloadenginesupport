@@ -26,10 +26,13 @@ cpu_util_from_raw(){
 
 # be in the directory
 parse_many_file_file(){
-	ipc_mem=$( ipc_mem_band_from_file ${1}*_multi_file.mem )
-	rps_nband_lat_99=$( rps_nband_lat_99_from_file ${1}*_band.txt)
-	avg_cpu=$( cpu_util_from_raw ${1}*_cpu_util )
+	# if [ [ -f "${1}*_multi_file.mem" ] &&  [ -f "${1}*_band.txt" ] && [ -f "${1}*_cpu_util" ] ]; then
+	[ -f "${1}_multi_file.mem" ] && \
+	ipc_mem=$( ipc_mem_band_from_file ${1}*_multi_file.mem ) # && \
+	[ -f "${1}_band.txt" ] && rps_nband_lat_99=$( rps_nband_lat_99_from_file ${1}*_band.txt) # && \
+	[ -f "${1}_cpu_util" ] && avg_cpu=$( cpu_util_from_raw ${1}*_cpu_util ) && \
 	echo "$1,$rps_nband_lat_99,$ipc_mem,$avg_cpu"
+	# fi
 }
 
 parse_many_file_test(){
@@ -41,17 +44,16 @@ parse_many_file_test(){
 }
 
 parse_many_file_compress_const(){
-	#encs=( "qat_gzip" "accel_gzip" "http_gzip" )
-	encs=( "accel_gzip_const"  )
+	encs=( "qat_gzip_const" "accel_gzip_const" "http_gzip_const"  )
 	for enc in "${encs[@]}";
 	do
-		echo -n "$(basename $(pwd) ),"
+		[ -f "${enc}_multi_file.mem" ] && echo -n "$(basename $(pwd) ),"
 		parse_many_file_file ${enc}
 	done
 }
 parse_many_file_compress(){
-	#encs=( "qat_gzip" "accel_gzip" "http_gzip" )
-	encs=( "accel_gzip"  )
+	encs=( "qat_gzip" "accel_gzip" "http_gzip" )
+	#encs=( "accel_gzip"  )
 	for enc in "${encs[@]}";
 	do
 		echo -n "$(basename $(pwd) ),"
