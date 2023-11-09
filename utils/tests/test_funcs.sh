@@ -83,11 +83,11 @@ multi_co_run_fixed(){
 
 #start a quick test 1-folder name
 multi_many_file_test(){
-	time=15
-	encs=( "http" "https" "axdimm" "qtls" "ktls" )
-	encs=( "http" )
+	time=10
+	#encs=( "http" "https" "axdimm" "qtls" "ktls" )
+	encs=( "qtls" )
 	ssh ${remote_host} "sudo wrmsr -a 0x1a4 15"
-	mkdir ${1}
+	mkdir -p ${1}
 	cd ${1}
 	#sed -i -E "s/\/([A-Za-z]+_)+([0-9]+[A-Za-z])?/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} "
@@ -109,16 +109,16 @@ multi_many_file_test(){
 
 		wait
 	done
-
+	cd ..
 }
 
 multi_many_file_test_constrps(){
 	time=10
 	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
-	encs=( "axdimm_const" )
+	#encs=( "axdimm_const" )
 	[ -z "${2}" ] && echo "No RPS specified" && return
 	export RPS=${2}
-	mkdir ${1}
+	mkdir -p ${1}
 	cd ${1}
 	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	debug "${FUNCNAME[0]}: ssh ${remote_host} \"${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_server.sh ${1} \""
@@ -141,7 +141,7 @@ multi_many_file_test_constrps(){
 
 		wait
 	done
-
+	cd ..
 }
 
 multi_many_compression_file_const_test(){
@@ -182,8 +182,8 @@ multi_many_compression_file_const_test(){
 }
 multi_many_compression_file_test(){
 	time=10
-	#encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
-	encs=( "qat_gzip" )
+	encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
+	#encs=( "qat_gzip" )
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
 	if [ -d "${1}" ]; then
 		cd ${1}
@@ -241,11 +241,12 @@ multi_many_constrps_var_files(){
 	# declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
 	# 	                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
 
+	mkdir -p tls_membw_cpu_test
+	cd tls_membw_cpu_test
 	declare -A sizes=(  ["4K"]=480000 ["16K"]=250000 )
 	for s in "${!sizes[@]}"; do
 		if [ ! -d "$s" ]; then
 			multi_many_file_test_constrps $s ${sizes[$s]}
-			cd ../
 		fi
 	done
 
@@ -256,11 +257,11 @@ multi_many_file_var(){
 	# declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
 	# 	                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
 	declare -A sizes=( ["4K"]=480000 ["16K"]=250000 )
+	#declare -A sizes=( ["4K"]=480000 )
+	mkdir -p tls_rps_test
+	cd tls_rps_test
 	for s in "${!sizes[@]}"; do
-		if [ ! -d "$s" ]; then
-			multi_many_file_test $s
-			cd ../
-		fi
+		multi_many_file_test $s
 	done
 
 }

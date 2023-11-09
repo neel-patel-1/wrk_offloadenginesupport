@@ -35,10 +35,29 @@ parse_many_file_file(){
 	# fi
 }
 
+parse_many_file_test_const(){
+	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
+	for enc in "${encs[@]}";
+	do
+		[ -f "${enc}_multi_file.mem" ] && echo -n "$(basename $(pwd) ),"
+		[ -f "${enc}_multi_file.mem" ] && parse_many_file_file ${enc}
+	done
+}
+
+parse_many_file_test_const(){
+	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
+	for enc in "${encs[@]}";
+	do
+		[ -f "${enc}_multi_file.mem" ] && echo -n "$(basename $(pwd) ),"
+		[ -f "${enc}_multi_file.mem" ] && parse_many_file_file ${enc}
+	done
+}
+
 parse_many_file_test(){
 	encs=( "https" "http" "axdimm" "qtls" "ktls" )
 	for enc in "${encs[@]}";
 	do
+		[ -f "${enc}_multi_file.mem" ] && echo -n "$(basename $(pwd) ),"
 		[ -f "${enc}_multi_file.mem" ] && parse_many_file_file ${enc}
 	done
 }
@@ -55,6 +74,7 @@ parse_many_file_compress(){
 	encs=( "qat_gzip" "accel_gzip" "http_gzip" )
 	for enc in "${encs[@]}";
 	do
+		[ -f "${enc}_multi_file.mem" ] && echo -n "$(basename $(pwd) ),"
 		echo -n "$(basename $(pwd) ),"
 		parse_many_file_file ${enc}
 	done
@@ -69,11 +89,20 @@ parse_many_multi_file_compress(){
 	done
 }
 
-parse_many_multi_file_(){
+parse_many_multi_file(){
 	dirs=( $(ls -1 ) )
 	for i in "${dirs[@]}"; do
 		cd $i;
 		parse_many_file_test
+		cd ../;
+	done
+}
+
+parse_many_multi_file_const(){
+	dirs=( $(ls -1 ) )
+	for i in "${dirs[@]}"; do
+		cd $i;
+		parse_many_file_test_const
 		cd ../;
 	done
 }
