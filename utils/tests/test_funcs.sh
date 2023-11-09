@@ -113,7 +113,7 @@ multi_many_file_test(){
 }
 
 multi_many_file_test_constrps(){
-	time=150
+	time=10
 	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
 	encs=( "axdimm_const" )
 	[ -z "${2}" ] && echo "No RPS specified" && return
@@ -146,8 +146,8 @@ multi_many_file_test_constrps(){
 
 multi_many_compression_file_const_test(){
 	time=10
-	#encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
-	encs=( "qat_gzip_const"  )
+	encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
+	#encs=( "qat_gzip_const"  )
 	RPS=${2}
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
 	if [ -d "${1}" ]; then
@@ -183,8 +183,7 @@ multi_many_compression_file_const_test(){
 multi_many_compression_file_test(){
 	time=10
 	#encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
-	encs=( "http_gzip" "accel_gzip" )
-	#encs=( "accel_gzip" )
+	encs=( "qat_gzip" )
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
 	if [ -d "${1}" ]; then
 		cd ${1}
@@ -218,9 +217,7 @@ multi_many_compression_file_test(){
 }
 
 compress_var_file_sizes(){
-	#sizes=( "1K" "4K" "16K" "32K" "64K" )
-	#sizes=( "1K" "4K" )
-	sizes=( "16K" )
+	sizes=( "4K" "16K" )
 	for s in "${sizes[@]}"; do
 		multi_many_compression_file_test $s
 		cd ../
@@ -241,8 +238,10 @@ compress_var_file_sizes_const(){
 
 multi_many_constrps_var_files(){
 	# maximum rps found for sw https for a given file size
-	declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
-		                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
+	# declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
+	# 	                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
+
+	declare -A sizes=(  ["4K"]=480000 ["16K"]=250000 )
 	for s in "${!sizes[@]}"; do
 		if [ ! -d "$s" ]; then
 			multi_many_file_test_constrps $s ${sizes[$s]}
@@ -254,8 +253,9 @@ multi_many_constrps_var_files(){
 
 multi_many_file_var(){
 	# maximum rps found for sw https for a given file size
-	declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
-		                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
+	# declare -A sizes=( ["1K"]=480000 ["4K"]=480000 \
+	# 	                    ["32K"]=180000 ["16K"]=250000 ["64K"]=115000 )
+	declare -A sizes=( ["4K"]=480000 ["16K"]=250000 )
 	for s in "${!sizes[@]}"; do
 		if [ ! -d "$s" ]; then
 			multi_many_file_test $s

@@ -39,7 +39,7 @@ parse_many_file_test(){
 	encs=( "https" "http" "axdimm" "qtls" "ktls" )
 	for enc in "${encs[@]}";
 	do
-		[ ! -z "$( ls ${enc}_*) " ] && parse_many_file_file ${enc}
+		[ -f "${enc}_multi_file.mem" ] && parse_many_file_file ${enc}
 	done
 }
 
@@ -53,7 +53,6 @@ parse_many_file_compress_const(){
 }
 parse_many_file_compress(){
 	encs=( "qat_gzip" "accel_gzip" "http_gzip" )
-	#encs=( "accel_gzip"  )
 	for enc in "${encs[@]}";
 	do
 		echo -n "$(basename $(pwd) ),"
