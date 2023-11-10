@@ -1,5 +1,6 @@
 ### Nginx Workload Experiments
 * Corresponds to figures 11 and 12 in [SmartDIMM:  In-Memory Acceleration of Upper Layer I/O Protocols Artifact](https://www.hpca-conf.org/2024)<br>
+***HPCA 2024 Artifact Evaluators*** should skip to [Artifact Evaluation instructions](#artifact-evaluation-instructions) below
 
 #### Setting up Cloudlab Instances:
 To ease reproduction we have created a cloudlab environment and setup closely matching the server configuration used in the HPCA 2024 paper `SmartDIMM:  In-Memory Acceleration of Upper Layer I/O Protocols Artifact`
