@@ -84,7 +84,7 @@ multi_co_run_fixed(){
 #start a quick test 1-folder name
 multi_many_file_test(){
 	time=10
-	#encs=( "http" "https" "axdimm" "qtls" "ktls" )
+	encs=( "http" "https" "axdimm" "qtls" "ktls" )
 	encs=( "qtls" )
 	ssh ${remote_host} "sudo wrmsr -a 0x1a4 15"
 	mkdir -p ${1}
@@ -146,16 +146,12 @@ multi_many_file_test_constrps(){
 
 multi_many_compression_file_const_test(){
 	time=10
-	encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
-	#encs=( "qat_gzip_const"  )
+	# encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
+	encs=( "qat_gzip_const"  )
 	RPS=${2}
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
-	if [ -d "${1}" ]; then
-		cd ${1}
-	else
-		mkdir ${1}
-		cd ${1}
-	fi
+	mkdir -p ${1}
+	cd ${1}
 
 	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_compression_corpus.sh ${1} "
@@ -179,18 +175,15 @@ multi_many_compression_file_const_test(){
 			wait
 		fi
 	done
+	cd ..
 }
 multi_many_compression_file_test(){
 	time=10
 	encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
 	#encs=( "qat_gzip" )
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
-	if [ -d "${1}" ]; then
-		cd ${1}
-	else
-		mkdir ${1}
-		cd ${1}
-	fi
+	mkdir -p ${1}
+	cd ${1}
 
 	sed -i -E "s/UCFile_[0-9]+[A-Z]/UCFile_${1}/g" ${WRK_ROOT}/many_req.lua
 	ssh ${remote_host} "${ROOT_DIR}/scripts/L5P_DRAM_Experiments/setup_compression_corpus.sh ${1} "
@@ -214,13 +207,15 @@ multi_many_compression_file_test(){
 			wait
 		fi
 	done
+	cd ..
 }
 
 compress_var_file_sizes(){
+	mkdir -p gzip_rps_test
+	cd gzip_rps_test
 	sizes=( "4K" "16K" )
 	for s in "${sizes[@]}"; do
 		multi_many_compression_file_test $s
-		cd ../
 	done
 
 }
@@ -228,7 +223,9 @@ compress_var_file_sizes(){
 
 compress_var_file_sizes_const(){
 	# declare -A sizes=( ["4K"]=77000 )
-	#declare -A sizes=( ["1K"]=140000 ["4K"]=77000 )
+	# declare -A sizes=( ["1K"]=140000 ["4K"]=77000 )
+	mkdir -p gzip_membw_cpu_test
+	cd gzip_membw_cpu_test
 	declare -A sizes=( ["4K"]=77000 ["16K"]=26000 )
 	for i in "${!sizes[@]}"; do
 		multi_many_compression_file_const_test ${i} ${sizes[$i]}

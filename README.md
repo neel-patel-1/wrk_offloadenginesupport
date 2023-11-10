@@ -43,8 +43,6 @@ cd ../client_wrks
 make default_wrk
 # modify /home/n869p538/wrk_offloadenginesupport/vars/env.src pollux remote config to dut hostname and ip
 
-mkdir gzip_rpc
-cd gzip_rpc
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
 compress_var_file_sizes # max RPS Compression test
 
@@ -60,10 +58,10 @@ cd ..
 mkdir gzip_membw_cpu
 cd gzip_membw_cpu
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
-multi_many_compression_file_const_test # constant RPS membw and CPU Util test
+compress_var_file_sizes_const # constant RPS membw and CPU Util test
 
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
-parse_many_file_compress_const # output csv to stdout
+parse_many_multi_file_compress_const # output csv to stdout
 # Normalize to accel-gzip to http-gzip for mem-bw and cpu-util comparison
 ```
 
@@ -145,5 +143,19 @@ make axdimm
 -bash: /home/n869p538/wrk_offloadenginesupport/client_wrks/autonomous-asplos21-artifact/wrk/wrk: No such file or directory
 [5]   Exit 127                ${1}_mt_core $2 $3 $4 $5 $( getport $1 ) ${7} $9 > $8
 ```
-
 * compile client_wrk for ktls
+```
+cd client_wrks
+make ktls_wrk
+```
+
+
+```
+/home/n869p538/wrk_offloadenginesupport/client_wrks/wrk_offload_engine/wrk: invalid option -- 'R'
+[3]   Exit 1                  ${1}_mt_core $2 $3 $4 $5 $( getport $1 ) ${7} $9 > $8
+```
+* compile client_wrk (wrk_offloadenginesupport)
+```
+cd wrk2_offload_engine/
+make -j
+```

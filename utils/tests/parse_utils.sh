@@ -82,15 +82,26 @@ parse_many_file_compress(){
 
 parse_many_multi_file_compress(){
 	dirs=( $(ls -1 ) )
+	echo "FileSize,Accel/Proto,RPS,NetBand,LatAvg,99PLat,IPC,membw,CPU%"
 	for i in "${dirs[@]}"; do
 		cd $i;
 		parse_many_file_compress
 		cd ../;
 	done
 }
+parse_many_multi_file_compress_const(){
+	dirs=( $(ls -1 ) )
+	echo "FileSize,Accel/Proto,RPS,NetBand,LatAvg,99PLat,IPC,membw,CPU%"
+	for i in "${dirs[@]}"; do
+		cd $i;
+		parse_many_file_compress_const
+		cd ../;
+	done
+}
 
 parse_many_multi_file(){
 	dirs=( $(ls -1 ) )
+	echo "FileSize,Accel/Proto,RPS,NetBand,LatAvg,99PLat,IPC,membw,CPU%"
 	for i in "${dirs[@]}"; do
 		cd $i;
 		parse_many_file_test
@@ -100,6 +111,7 @@ parse_many_multi_file(){
 
 parse_many_multi_file_const(){
 	dirs=( $(ls -1 ) )
+	echo "FileSize,Accel/Proto,RPS,NetBand,LatAvg,99PLat,IPC,membw,CPU%"
 	for i in "${dirs[@]}"; do
 		cd $i;
 		parse_many_file_test_const

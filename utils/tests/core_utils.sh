@@ -58,7 +58,7 @@ axdimm_const_mt_core(){
 	export OPENSSL_ENGINES=$AXDIMM_ENGINES
 	export LD_LIBRARY_PATH=$AXDIMM_OSSL_LIBS:$AXDIMM_ENGINES:$AXDIMM_DIR/lib
 
-	${WRK2} -e qatengine --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
+	${engine_wrk_2} -e qatengine --latency -R ${RPS} -t${1} -s ${WRK_ROOT}/many_req.lua -c${2} -d${3} ${7} https://${4}:${5}
 }
 
 
