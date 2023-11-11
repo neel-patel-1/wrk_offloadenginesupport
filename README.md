@@ -21,20 +21,20 @@ To ease reproducibility for our artifact evaluators we have provided on-premise 
 ```sh
 ./scripts/configure.sh
 make default # build baseline nginx
-
-# setup server with files
-./scripts/L5P_DRAM_Experiments/setup_server.sh 16K
-./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
-
 cd nginx_compress_emul
 ./default_build.sh # gzip build
 ./emul_build.sh # accelerated gzip build
 cd ..
 make qtls # qat build -- assumes QAT c62x series PCIe adaptor installed
+
+# setup server with files
+./scripts/L5P_DRAM_Experiments/setup_server.sh 16K
+./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
 ```
 
 * workload generation and result collection
 ```sh
+git submodule update --init .
 cd client_ossls
 ./build_1_1_1f.sh
 cd ../client_wrks
@@ -111,4 +111,14 @@ source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
 parse_many_multi_file_const
 
 
+```
+
+
+dut issues:
+```
+(base) n869p538@pollux:async_nginx_build$ ./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/axdimm/nginx_build/html: mount point does not exist.
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/ktls/nginx_build/html: mount point does not exist.
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/qtls/async_mode_nginx_build/html: mount point does not exist.
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/qtls/async_mode_nginx_build/html: mount point does not exist.
 ```
