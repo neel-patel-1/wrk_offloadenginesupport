@@ -242,9 +242,7 @@ multi_many_constrps_var_files(){
 	cd tls_membw_cpu_test
 	declare -A sizes=(  ["4K"]=480000 ["16K"]=250000 )
 	for s in "${!sizes[@]}"; do
-		if [ ! -d "$s" ]; then
-			multi_many_file_test_constrps $s ${sizes[$s]}
-		fi
+		multi_many_file_test_constrps $s ${sizes[$s]}
 	done
 
 }

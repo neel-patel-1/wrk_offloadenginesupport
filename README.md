@@ -26,14 +26,11 @@ make default # build baseline nginx
 ./scripts/L5P_DRAM_Experiments/setup_server.sh 16K
 ./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
 
-# gzip build
 cd nginx_compress_emul
-./default_build.sh
-# gzip emulation build
-./emul_build.sh
+./default_build.sh # gzip build
+./emul_build.sh # accelerated gzip build
 cd ..
-# qat build -- assumes QAT c62x series PCIe adaptor installed
-make qtls
+make qtls # qat build -- assumes QAT c62x series PCIe adaptor installed
 ```
 
 * workload generation and result collection
@@ -48,22 +45,19 @@ source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
 compress_var_file_sizes # max RPS Compression test
 
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
-parse_many_multi_file_compress # parse results to stdout
-# Normalize to accel-gzip to http-gzip for RPS comparison
+parse_many_multi_file_compress # parse results to stdout (Normalize to accel-gzip to http-gzip for RPS comparison)
 
 cd ..
 git submodule update --init wrk2
 cd wrk2
 make -j
 cd ..
-mkdir gzip_membw_cpu
-cd gzip_membw_cpu
+
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
 compress_var_file_sizes_const # constant RPS membw and CPU Util test
 
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
-parse_many_multi_file_compress_const # output csv to stdout
-# Normalize to accel-gzip to http-gzip for mem-bw and cpu-util comparison
+parse_many_multi_file_compress_const # output csv to stdout (Normalize to accel-gzip to http-gzip for mem-bw and cpu-util comparison)
 ```
 
 ### TLS-Encrypted File Server Experiments
