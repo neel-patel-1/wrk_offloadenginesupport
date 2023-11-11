@@ -1,9 +1,10 @@
 #!/bin/bash
-export WRK_ROOT=/home/n869p538/wrk_offloadenginesupport
+export CDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export WRK_ROOT=$CDIR/../
 source $WRK_ROOT/vars/env.src
 
 [ ! -d "$cli_ossls" ] && mkdir $cli_ossls
-cd $cli_ossls
+echo "$cli_ossls"
 
 #openssl
 cd ${cli_ossls}
