@@ -34,15 +34,18 @@ make qtls # qat build -- assumes QAT c62x series PCIe adaptor installed
 
 * workload generation and result collection
 ```sh
-# update vars/env/src WRK_ROOT and ROOT_DIR variables to wrk_offloadenginesupport and async_nginx_build directories, respectively
+# update vars/env.src WRK_ROOT and ROOT_DIR variables to wrk_offloadenginesupport and async_nginx_build directories, respectively
 git submodule update --init .
 cd client_ossls
 ./build_1_1_1f.sh
 cd ../client_wrks
 make default_wrk
-# modify /home/n869p538/wrk_offloadenginesupport/vars/env.src pollux remote config to dut hostname and ip
+cd ..
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
+# modify vars/env.src #pollux remote config to use dut IP, async_nginx_build directory, hostname, and netdev
+source vars/env.src
+
+source ${WRK_ROOT}/utils/tests/test_funcs.sh;
 compress_var_file_sizes # max RPS Compression test
 
 source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
