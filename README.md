@@ -34,6 +34,7 @@ make qtls # qat build -- assumes QAT c62x series PCIe adaptor installed
 
 * workload generation and result collection
 ```sh
+# update vars/env/src WRK_ROOT and ROOT_DIR variables to wrk_offloadenginesupport and async_nginx_build directories, respectively
 git submodule update --init .
 cd client_ossls
 ./build_1_1_1f.sh
