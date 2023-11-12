@@ -38,3 +38,18 @@ make ktls_wrk
 cd wrk2_offload_engine/
 make -j
 ```
+
+dut issues:
+```
+(base) n869p538@pollux:async_nginx_build$ ./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/axdimm/nginx_build/html: mount point does not exist.
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/ktls/nginx_build/html: mount point does not exist.
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/qtls/async_mode_nginx_build/html: mount point does not exist.
+mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/qtls/async_mode_nginx_build/html: mount point does not exist.
+```
+* compile all nginx servers:
+```
+make axdimm
+make qtls
+make ktls
+```
