@@ -120,27 +120,29 @@ To ease reproducibility for our artifact evaluators we have provided on-premise 
 ##### Run Experiments on castor (workload generator) and pollux (dut)
 * from castor:/home/shared/wrk_offloadenginesupport
 ```sh
+# change vars/env.src lines:
+# #pollux remote config
+# export remote_host=n869p538@pollux.ittc.ku.edu
+# export remote_user="n869p538@pollux.ittc.ku.edu"
+# to use your provisional account's username
+
 source vars/env.src
 
 source ${WRK_ROOT}/utils/tests/test_funcs.sh;
 compress_var_file_sizes # max RPS Compression test
-
 source ${WRK_ROOT}/utils/tests/parse_utils.sh;
 parse_many_multi_file_compress # parse results to stdout (Normalize to accel-gzip to http-gzip for RPS comparison)
 cd ..
 
 compress_var_file_sizes # max RPS Compression test
-
 parse_many_multi_file_compress # parse results to stdout (Normalize to accel-gzip to http-gzip for RPS comparison)
 cd ..
 
 multi_many_file_var # max RPS test
-
 parse_many_multi_file
 cd ..
 
 multi_many_constrps_var_files # tls membw cpu test
-
 parse_many_multi_file_const
 cd ..
 ```
