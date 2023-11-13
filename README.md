@@ -118,14 +118,10 @@ To ease reproducibility for our artifact evaluators we have provided on-premise 
 * please reach out to the authors if there are any further questions regarding accessing our on-premise hosts
 
 ##### Run Experiments on castor (workload generator) and pollux (dut)
-* from castor:/home/shared/wrk_offloadenginesupport
-```sh
-# change vars/env.src lines:
-# #pollux remote config
-# export remote_host=n869p538@pollux.ittc.ku.edu
-# export remote_user="n869p538@pollux.ittc.ku.edu"
-# to use your provisional account's username
+* `ssh sgupta@castor.ittc.ku.edu` (credentials provided on hpca2024_ae site)
+* from castor:/home/n869p538/wrk_offloadenginesupport
 
+```sh
 source vars/env.src
 
 source ${WRK_ROOT}/utils/tests/test_funcs.sh;
