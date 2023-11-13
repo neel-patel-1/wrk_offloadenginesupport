@@ -12,12 +12,8 @@ from the paper will be executed. For more information, refer to [`SmartDIMM:  In
 	* Create a cloudlab account if needed
 	* Navigate to `Experiments`, then `Create Experiment Profile`, and upload `nginx_workload.profile`
 
-#### Artifact Evaluation Instructions:
-To ease reproducibility for our artifact evaluators we have provided on-premise access to the servers used to generate the original nginx workload results from the HPCA 2024 paper `SmartDIMM:  In-Memory Acceleration of Upper Layer I/O Protocols Artifact`
-* please reach out to the authors if there are any further questions regarding accessing our on-premise hosts
-
 ### Compressed File Server Setup and Workload Generation
-* dut setup: (e.g., run on pollux from `async_nginx_build` directory)
+* dut setup: (e.g., run on dut from `async_nginx_build` directory)
 ```sh
 ./scripts/configure.sh
 make default # build baseline nginx
@@ -48,7 +44,7 @@ source vars/env.src
 source ${WRK_ROOT}/utils/tests/test_funcs.sh;
 compress_var_file_sizes # max RPS Compression test
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
+source ${WRK_ROOT}/utils/tests/parse_utils.sh;
 parse_many_multi_file_compress # parse results to stdout (Normalize to accel-gzip to http-gzip for RPS comparison)
 
 cd ..
@@ -57,15 +53,15 @@ cd wrk2
 make -j
 cd ..
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
+source ${WRK_ROOT}/utils/tests/test_funcs.sh;
 compress_var_file_sizes_const # constant RPS membw and CPU Util test
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
+source ${WRK_ROOT}/utils/tests/parse_utils.sh;
 parse_many_multi_file_compress_const # output csv to stdout (Normalize to accel-gzip to http-gzip for mem-bw and cpu-util comparison)
 ```
 
 ### TLS-Encrypted File Server Experiments
-* dut setup: (e.g., run on pollux from `async_nginx_build` directory)
+* dut setup: (e.g., run on dut from `async_nginx_build` directory)
 ```sh
 ./scripts/configure.sh
 make default # build baseline nginx
@@ -99,30 +95,54 @@ cd ..
 cd ../async_nginx_build
 make axdimm
 
-# modify /home/n869p538/wrk_offloadenginesupport/vars/env.src pollux remote config to dut hostname and ip
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh;
+# modify vars/env.src #pollux remote config to use dut IP, async_nginx_build directory, hostname, and netdev
+source vars/env.src
+
+source ${WRK_ROOT}/utils/tests/test_funcs.sh;
 multi_many_file_var # max RPS test
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
+source ${WRK_ROOT}/utils/tests/parse_utils.sh;
 parse_many_multi_file
 
 cd ..
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/test_funcs.sh; 
+source ${WRK_ROOT}/utils/tests/test_funcs.sh;
 multi_many_constrps_var_files # tls membw cpu test
 
-source /home/n869p538/wrk_offloadenginesupport/utils/tests/parse_utils.sh;
+source ${WRK_ROOT}/utils/tests/parse_utils.sh;
 parse_many_multi_file_const
-
-
 ```
 
+#### Artifact Evaluation Instructions:
+To ease reproducibility for our artifact evaluators we have provided on-premise access to the servers used to generate the original nginx workload results from the HPCA 2024 paper `SmartDIMM:  In-Memory Acceleration of Upper Layer I/O Protocols Artifact`
+* please reach out to the authors if there are any further questions regarding accessing our on-premise hosts
 
-dut issues:
-```
-(base) n869p538@pollux:async_nginx_build$ ./scripts/L5P_DRAM_Experiments/setup_server.sh 4K
-mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/axdimm/nginx_build/html: mount point does not exist.
-mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/ktls/nginx_build/html: mount point does not exist.
-mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/qtls/async_mode_nginx_build/html: mount point does not exist.
-mount: /home/shared/wrk_offloadenginesupport/async_nginx_build/qtls/async_mode_nginx_build/html: mount point does not exist.
+##### Run Experiments on castor (workload generator) and pollux (dut)
+* from castor:/home/shared/wrk_offloadenginesupport
+```sh
+# change vars/env.src lines:
+# #pollux remote config
+# export remote_host=n869p538@pollux.ittc.ku.edu
+# export remote_user="n869p538@pollux.ittc.ku.edu"
+# to use your provisional account's username
+
+source vars/env.src
+
+source ${WRK_ROOT}/utils/tests/test_funcs.sh;
+compress_var_file_sizes # max RPS Compression test
+source ${WRK_ROOT}/utils/tests/parse_utils.sh;
+parse_many_multi_file_compress # parse results to stdout (Normalize to accel-gzip to http-gzip for RPS comparison)
+cd ..
+
+compress_var_file_sizes # max RPS Compression test
+parse_many_multi_file_compress # parse results to stdout (Normalize to accel-gzip to http-gzip for RPS comparison)
+cd ..
+
+multi_many_file_var # max RPS test
+parse_many_multi_file
+cd ..
+
+multi_many_constrps_var_files # tls membw cpu test
+parse_many_multi_file_const
+cd ..
 ```
