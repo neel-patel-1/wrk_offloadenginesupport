@@ -83,7 +83,7 @@ multi_co_run_fixed(){
 
 #start a quick test 1-folder name
 multi_many_file_test(){
-	time=10
+	time=120
 	encs=( "http" "https" "axdimm" "qtls" "ktls" )
 	# encs=( "qtls" )
 	ssh ${remote_host} "sudo wrmsr -a 0x1a4 15"
@@ -113,7 +113,7 @@ multi_many_file_test(){
 }
 
 multi_many_file_test_constrps(){
-	time=10
+	time=120
 	encs=( "https_const" "http_const" "axdimm_const" "qtls_const" "ktls_const" )
 	#encs=( "axdimm_const" )
 	[ -z "${2}" ] && echo "No RPS specified" && return
@@ -145,7 +145,7 @@ multi_many_file_test_constrps(){
 }
 
 multi_many_compression_file_const_test(){
-	time=10
+	time=120
 	encs=( "accel_gzip_const" "http_gzip_const"  "qat_gzip_const" )
 	# encs=( "qat_gzip_const"  )
 	RPS=${2}
@@ -178,7 +178,7 @@ multi_many_compression_file_const_test(){
 	cd ..
 }
 multi_many_compression_file_test(){
-	time=10
+	time=120
 	encs=( "http_gzip"  "qat_gzip" "accel_gzip" )
 	#encs=( "qat_gzip" )
 	[ -z "${1}" ] && echo "FSIZE Missing : \$1" && return
