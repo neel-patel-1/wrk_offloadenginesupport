@@ -9,7 +9,7 @@
 	url = https://github.com/giltene/wrk2.git
 [submodule "wrk2_offload_engine"]
 	path = wrk2_offload_engine
-	url = git@github.com:neelpatelbiz/wrk2_offload_engine.git
+	url = https://github.com/neel-patel-1/wrk2_offload_engine.git
 [submodule "async_nginx_build"]
 	path = async_nginx_build
 	url = https://github.com/neel-patel-1/async_nginx_build.git
